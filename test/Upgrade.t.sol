@@ -8,12 +8,16 @@ import "../src/ProxyAdmin.sol";
 import "../src/TransparentUpgradeableProxy.sol";
 
 contract UpgradeTest is Test {
+    address public alice = address(0x1111);
+
     ImplementationExample implementationExample;
+    ImplementationExample implementationExample2;
     ProxyAdmin proxyAdmin;
     TransparentUpgradeableProxy transparentUpgradeableProxy;
 
     function setUp() public {
         implementationExample = new ImplementationExample();
+        implementationExample2 = new ImplementationExample();
         proxyAdmin = new ProxyAdmin();
         transparentUpgradeableProxy = new TransparentUpgradeableProxy(address(implementationExample),address(proxyAdmin),new bytes(0));
     }
@@ -26,6 +30,15 @@ contract UpgradeTest is Test {
     function testGetProxyImplementation() public {
         address implement = proxyAdmin.getProxyImplementation(transparentUpgradeableProxy);
         assertEq(implement, address(implementationExample));
+    }
+
+    function testUpgrade() public {
+        vm.expectRevert(abi.encodePacked("Ownable: caller is not the owner"));
+        vm.prank(alice);
+        proxyAdmin.upgrade(transparentUpgradeableProxy, address(implementationExample2));
+        
+        vm.stopPrank();
+        proxyAdmin.upgrade(transparentUpgradeableProxy, address(implementationExample2));
     }
 
 }
