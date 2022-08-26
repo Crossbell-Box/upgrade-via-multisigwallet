@@ -20,5 +20,12 @@ contract UpgradeTest is Test {
 
     function testGetAdmin() public {
         address admin = proxyAdmin.getProxyAdmin(transparentUpgradeableProxy);
+        assertEq(admin, address(proxyAdmin));
     }
+
+    function testGetProxyImplementation() public {
+        address implement = proxyAdmin.getProxyImplementation(transparentUpgradeableProxy);
+        assertEq(implement, address(implementationExample));
+    }
+
 }
