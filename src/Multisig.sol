@@ -5,7 +5,7 @@ pragma solidity 0.8.10;
 import "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "../src/TransparentUpgradeableProxy.sol";
 
-contract MultiSig {
+contract Multisig {
     // events
     event Setup(
         address indexed initiator,

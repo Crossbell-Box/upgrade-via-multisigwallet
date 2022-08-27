@@ -56,10 +56,10 @@ contract UpgradeTest is Test {
 
     function testProxy() public {
         //! how to call retrive() via proxy?
-        // the initial value is 1 
+        // the initial value is 1  
         // TODO
     }
-    
+
 
 
 }
