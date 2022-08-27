@@ -21,25 +21,37 @@ contract UpgradeTest is Test {
         implementationExample2 = new ImplementationExample2();
         proxyAdmin = new ProxyAdmin();
         transparentUpgradeableProxy = new TransparentUpgradeableProxy(address(implementationExample),address(proxyAdmin), abi.encodeWithSelector(0xfe4b84df,1));
+        // check here:https://www.notion.so/practice-transparent-upgradeable-contract-5216c5f5737f49fbbfab7a5469adbe40
+        // the third para is the calldata when calling initialize func
+        //! how to get 0xfe4b84df?
+        // cast sig "initialize(uint256 _initialValue)" 
     }
 
-    function testGetAdmin() public {
+    function testGetInformation() public {
+        // get admin (when msg.sender is owner)
         address admin = proxyAdmin.getProxyAdmin(transparentUpgradeableProxy);
         assertEq(admin, address(proxyAdmin));
-    }
-
-    function testGetProxyImplementation() public {
+        // get implementation address
         address implement = proxyAdmin.getProxyImplementation(transparentUpgradeableProxy);
         assertEq(implement, address(implementationExample));
     }
 
-    function testUpgrade() public {
+    function testAdminCan() public {
+        // admin can upgrade but others can't
         vm.expectRevert(abi.encodePacked("Ownable: caller is not the owner"));
         vm.prank(alice);
         proxyAdmin.upgrade(transparentUpgradeableProxy, address(implementationExample2));
-        
         vm.stopPrank();
         proxyAdmin.upgrade(transparentUpgradeableProxy, address(implementationExample2));
+
+        // admin can change admin but others can't
+        vm.expectRevert(abi.encodePacked("Ownable: caller is not the owner"));
+        vm.prank(alice);
+        proxyAdmin.changeProxyAdmin(transparentUpgradeableProxy, alice);
+        vm.stopPrank();
+        proxyAdmin.changeProxyAdmin(transparentUpgradeableProxy, alice);
+
     }
+
 
 }
