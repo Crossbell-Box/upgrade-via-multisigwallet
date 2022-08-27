@@ -1,10 +1,33 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (proxy/transparent/ProxyAdmin.sol)
 
+import "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
+
 pragma solidity 0.8.10;
 
-import {ERC20} from "solmate/tokens/ERC20.sol";
+contract ImplementationExample is Initializable {
+    uint256 public initialValue;
+    uint256 private value;
 
-contract ImplementationExample is ERC20("Token", "TOK", 18) {
-
+    function initialize(uint256 _initialValue) public initializer {
+        initialValue = _initialValue;
+        store(initialValue);
+    }
+    // function initialize() public {
+        
+    // }
+ 
+    // Emitted when the stored value changes
+    event ValueChanged(uint256 newValue);
+ 
+    // Stores a new value in the contract
+    function store(uint256 newValue) public {
+        value = newValue;
+        emit ValueChanged(newValue);
+    }
+ 
+    // Reads the last stored value
+    function retrieve() public view returns (uint256) {
+        return value;
+    }
 }
