@@ -60,6 +60,16 @@ contract UpgradeTest is Test {
         // TODO
     }
 
+    function testAliceIsOwnerOfProxyAdmin() public {
+        proxyAdmin.transferOwnership(alice);
+        vm.startPrank(alice);
+        proxyAdmin.changeProxyAdmin(transparentUpgradeableProxy, alice);
+        address admin = transparentUpgradeableProxy.admin();
+        assertEq(admin, alice);
+        proxyAdmin.upgrade(transparentUpgradeableProxy, address(implementationExample2));
+        // TODO
+        // ! why alice can't upgrade
+    }
 
 
 }
