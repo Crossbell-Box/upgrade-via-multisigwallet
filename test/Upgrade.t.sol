@@ -47,6 +47,7 @@ contract UpgradeTest is Test {
         proxyAdmin.upgrade(transparentUpgradeableProxy, address(implementationExample2));
 
         // admin can change admin but others can't
+        // ! usually you don't need to change this admin
         vm.expectRevert(abi.encodePacked("Ownable: caller is not the owner"));
         vm.prank(alice);
         proxyAdmin.changeProxyAdmin(transparentUpgradeableProxy, alice);
@@ -63,12 +64,7 @@ contract UpgradeTest is Test {
     function testAliceIsOwnerOfProxyAdmin() public {
         proxyAdmin.transferOwnership(alice);
         vm.startPrank(alice);
-        proxyAdmin.changeProxyAdmin(transparentUpgradeableProxy, alice);
-        address admin = transparentUpgradeableProxy.admin();
-        assertEq(admin, alice);
         proxyAdmin.upgrade(transparentUpgradeableProxy, address(implementationExample2));
-        // TODO
-        // ! why alice can't upgrade
     }
 
 

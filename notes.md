@@ -11,5 +11,16 @@ proxyAdmin is admin of TransparentUpgradeableProxy
 ## change the owner of proxyAdmin into alice
 call proxyAdmin.upgrade => [FAIL. Reason: Ownable: caller is not the owner]
 
-proxyAdmin is ownable, `transferOwnership` should be called
+(proxyAdmin is ownable, `transferOwnership` should be called)
+
+problem solved:
+
+when you want to transfer the power of upgrading into someone else, you should only change the owner of ProxyAdmin contract, and you don't need to change the admin of TransparentUpgradeableProxy!!
+
+the logic goes:
+
+`the owner of ProxyAdmin` controls => `ProxyAdmin`
+
+`ProxyAdmin` controls => `TransparentUpgradeableProxy`
+
    
