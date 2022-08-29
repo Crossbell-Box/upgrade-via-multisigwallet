@@ -44,10 +44,13 @@ contract Multisig {
     uint256 internal ownersCount;
     uint256 internal threshold;
 
+    string internal constant proposalTypeUpgrade = "upgrade";
+    string internal constant proposalTypeChangeAdmin = "changeAdmin";
+
     struct Proposal {
-        ProxyAdmin proxyAdmin;
-        TransparentUpgradeableProxy proxy;
-        address implementation;
+        TransparentUpgradeableProxy target;
+        string proposalType; // proposalTypeUpgrade or proposalTypeChangeAdmin
+        address data;
         uint256 approvalCount;
         address[] approvals;
         string status;
@@ -56,7 +59,6 @@ contract Multisig {
     mapping(uint256 => Proposal) internal proposals;
     uint256[] internal pendingProposalIds;
 
-    receive() external payable {}
 
     constructor(address[] memory _owners, uint256 _threshold) {
         require(_threshold > 0, "ThresholdIsZero");
@@ -83,9 +85,10 @@ contract Multisig {
         emit Setup(msg.sender, _owners, ownersCount, threshold);
     }
 
-    function proposeUpgrade(ProxyAdmin proxyAdmin, TransparentUpgradeableProxy proxy, address implementation) external onlyMember {
+    function propose(string calldata proposalType, address target) external onlyMember {
         // require(address(this).balance >= amount, "InsufficientBalance");
 
+        // TODO
         proposalCount++;
         uint256 proposalId = proposalCount;
         // create proposal
@@ -202,6 +205,15 @@ contract Multisig {
     function _executeProposal(uint256 _proposalId) internal {
         Proposal storage proposal = proposals[_proposalId];
         // TODO
+
+        if (proposal.proposalType == proposalTypeUpgrade) {
+            proposal.target.upgradeTo(proposal.data);
+
+        } else if (proposal.proposalType == proposalTypeChangeAdmin) {
+            proposal.target.changeAdmin(proposal.data);
+        } else {
+            // TODO: revert
+        }
 
         // upgrade contract
         _upgrade(proposal.proxyAdmin, proposal.proxy, proposal.implementation);
