@@ -4,6 +4,7 @@ pragma solidity 0.8.10;
 
 import "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "../src/TransparentUpgradeableProxy.sol";
+import "../src/ProxyAdmin.sol";
 
 contract Multisig {
     // events
@@ -15,6 +16,7 @@ contract Multisig {
     );
 
     event Propose(
+        ProxyAdmin proxyAdmin,
         TransparentUpgradeableProxy proxy,
         address implementation,
         uint256 indexed proposalId
@@ -26,7 +28,7 @@ contract Multisig {
         TransparentUpgradeableProxy proxy,
         address implementation
     );
-    event Upgrade(TransparentUpgradeableProxy proxy, address implementation);
+    event Upgrade(ProxyAdmin proxyAdmin, TransparentUpgradeableProxy proxy, address implementation);
 
     modifier onlyMember() {
         require(owners[msg.sender] != address(0), "NotOwner");
@@ -43,6 +45,7 @@ contract Multisig {
     uint256 internal threshold;
 
     struct Proposal {
+        ProxyAdmin proxyAdmin;
         TransparentUpgradeableProxy proxy;
         address implementation;
         uint256 approvalCount;
@@ -80,19 +83,20 @@ contract Multisig {
         emit Setup(msg.sender, _owners, ownersCount, threshold);
     }
 
-    function proposeUpgrade(TransparentUpgradeableProxy proxy, address implementation) external onlyMember {
+    function proposeUpgrade(ProxyAdmin proxyAdmin, TransparentUpgradeableProxy proxy, address implementation) external onlyMember {
         // require(address(this).balance >= amount, "InsufficientBalance");
 
         proposalCount++;
         uint256 proposalId = proposalCount;
         // create proposal
+        proposals[proposalId].proxyAdmin = proxyAdmin;
         proposals[proposalId].proxy = proxy;
         proposals[proposalId].implementation = implementation;
         proposals[proposalId].approvalCount = 0;
         proposals[proposalId].status = PROPOSAL_STATUS_PENDING;
         pendingProposalIds.push(proposalId);
 
-        emit Propose(proxy, implementation, proposalId);
+        emit Propose(proxyAdmin, proxy, implementation, proposalId);
     }
 
     function approveProposal(uint256 _proposalId, bool execute)
@@ -197,17 +201,10 @@ contract Multisig {
 
     function _executeProposal(uint256 _proposalId) internal {
         Proposal storage proposal = proposals[_proposalId];
-        require(proposal.approvalCount >= threshold, "NotEnoughApproval");
-
-        // // transfer CSB
-        // _transfer(proposal.to, proposal.amount);
-
         // TODO
-        // 1. set multisig contract address as the admin of the ProxyAdmin
-        // 2. complete the _executeProposal function -> call proxyAdmin.upgrade() function
 
         // upgrade contract
-        _upgrade(proposal.proxy, proposal.implementation);
+        _upgrade(proposal.proxyAdmin, proposal.proxy, proposal.implementation);
 
         // update proposal
         _deletePendingProposalId(_proposalId);
@@ -216,8 +213,8 @@ contract Multisig {
         emit Execution(_proposalId, proposal.proxy, proposal.implementation);
     }
 
-    function _upgrade(TransparentUpgradeableProxy proxy, address implementation) internal {
-        proxy.upgradeTo(implementation);
+    function _upgrade(ProxyAdmin proxyAdmin, TransparentUpgradeableProxy proxy, address implementation) internal {
+        proxyAdmin.upgrade(proxy, implementation);
     }
 
     // function _transfer(address _to, uint256 _amount) internal {

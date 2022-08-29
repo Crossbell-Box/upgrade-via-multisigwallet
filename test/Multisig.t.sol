@@ -31,28 +31,38 @@ contract MultisigTest is Test {
     }
 
     function testMultisigExecute() public {
-        //! first, change admin of ProxyAdmin into multisig contract
-        address preAdmin = proxyAdmin.getProxyAdmin(transparentUpgradeableProxy);
-        assertEq(preAdmin, address(this));
-        vm.prank(address(proxyAdmin));
-        proxyAdmin.changeProxyAdmin(transparentUpgradeableProxy, address(alice));
-        // vm.startPrank(address(multisig));
-        // address postAdmin = proxyAdmin.getProxyAdmin(transparentUpgradeableProxy);
-        // assertEq(postAdmin, address(multisig));
-
-        // //! propose and execute
-        // vm.prank(alice);
-        // multisig.proposeUpgrade(transparentUpgradeableProxy, address(implementationExample2));
-
+        //! first, transfer the ownership of ProxyAdmin to multisig contract
+        proxyAdmin.transferOwnership(address(multisig));
+        // now, only multisig contract can upgrade
+        vm.prank(address(multisig));
+        proxyAdmin.upgrade(transparentUpgradeableProxy, address(implementationExample2));
+        //! then, propose to execute proxyAdmin.upgrade()
     }
+
+    function testProposeToUpgrade() public {
+        proxyAdmin.transferOwnership(address(multisig));
+        // 1. alice propose to upgrade
+        vm.prank(alice);
+        multisig.proposeUpgrade(proxyAdmin, transparentUpgradeableProxy, address(implementationExample2));
+        // 2. alice and bob approve the proposal
+        vm.prank(alice);
+        multisig.approveProposal(1, true);
+        vm.prank(alice);
+        multisig.executeProposal(1);
+
+        // 3. alice execute the upgrade
+        // vm.prank(alice);
+        // multisig.executeProposal(1);
+    }
+
 
     function testGetProposalCount() public {
         // owner can propose but others can't
         vm.expectRevert(abi.encodePacked("NotOwner"));
         vm.prank(daniel);
-        multisig.proposeUpgrade(transparentUpgradeableProxy, address(implementationExample2));
+        multisig.proposeUpgrade(proxyAdmin,transparentUpgradeableProxy, address(implementationExample2));
         vm.prank(alice);
-        multisig.proposeUpgrade(transparentUpgradeableProxy, address(implementationExample2));
+        multisig.proposeUpgrade(proxyAdmin, transparentUpgradeableProxy, address(implementationExample2));
         uint256 count = multisig.getProposalCount();
         assertEq(count, 1);
         multisig.getAllProposals(1, 1);
