@@ -4,7 +4,6 @@ pragma solidity 0.8.10;
 
 import "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import "../src/TransparentUpgradeableProxy.sol";
-import "../src/ProxyAdmin.sol";
 
 contract Multisig {
     // events
@@ -29,7 +28,8 @@ contract Multisig {
         bool proposalType, // proposalTypeUpgrade or proposalTypeChangeAdmin
         address data
     );
-    event Upgrade(ProxyAdmin proxyAdmin, TransparentUpgradeableProxy proxy, address implementation);
+    event Upgrade(TransparentUpgradeableProxy target, address implementation);
+    event ChangeAdmin(TransparentUpgradeableProxy target, address newAdmin);
 
     modifier onlyMember() {
         require(owners[msg.sender] != address(0), "NotOwner");
@@ -203,8 +203,11 @@ contract Multisig {
         // 0 stands for proposalTypeUpgrade, 1 stands for proposalTypeChangeAdmin
         if (proposal.proposalType) {
             proposal.target.changeAdmin(proposal.data);
+            // address oldAdmin = proposal.target.admin();
+            emit ChangeAdmin(proposal.target, proposal.data);
         } else {
             proposal.target.upgradeTo(proposal.data);
+            emit Upgrade(proposal.target, proposal.data);
         }
 
         // update proposal
