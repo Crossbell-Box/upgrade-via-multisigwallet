@@ -16,17 +16,18 @@ contract Multisig {
     );
 
     event Propose(
-        ProxyAdmin proxyAdmin,
-        TransparentUpgradeableProxy proxy,
-        address implementation,
-        uint256 indexed proposalId
+        uint256 indexed proposalId,
+        TransparentUpgradeableProxy target,
+        bool proposalType, // 0 stands for proposalTypeUpgrade, 1 stands for proposalTypeChangeAdmin
+        address data
     );
     event Approval(address indexed owner, uint256 indexed proposalId);
     event Delete(address indexed owner, uint256 indexed proposalId);
     event Execution(
         uint256 indexed proposalId,
-        TransparentUpgradeableProxy proxy,
-        address implementation
+        TransparentUpgradeableProxy target,
+        bool proposalType, // proposalTypeUpgrade or proposalTypeChangeAdmin
+        address data
     );
     event Upgrade(ProxyAdmin proxyAdmin, TransparentUpgradeableProxy proxy, address implementation);
 
@@ -44,12 +45,9 @@ contract Multisig {
     uint256 internal ownersCount;
     uint256 internal threshold;
 
-    string internal constant proposalTypeUpgrade = "upgrade";
-    string internal constant proposalTypeChangeAdmin = "changeAdmin";
-
     struct Proposal {
         TransparentUpgradeableProxy target;
-        string proposalType; // proposalTypeUpgrade or proposalTypeChangeAdmin
+        bool proposalType; // proposalTypeUpgrade or proposalTypeChangeAdmin
         address data;
         uint256 approvalCount;
         address[] approvals;
@@ -85,21 +83,18 @@ contract Multisig {
         emit Setup(msg.sender, _owners, ownersCount, threshold);
     }
 
-    function propose(string calldata proposalType, address target) external onlyMember {
-        // require(address(this).balance >= amount, "InsufficientBalance");
-
-        // TODO
+    function propose(TransparentUpgradeableProxy target, bool proposalType, address data) external onlyMember {
         proposalCount++;
         uint256 proposalId = proposalCount;
         // create proposal
-        proposals[proposalId].proxyAdmin = proxyAdmin;
-        proposals[proposalId].proxy = proxy;
-        proposals[proposalId].implementation = implementation;
+        proposals[proposalId].target = target;
+        proposals[proposalId].proposalType = proposalType;
+        proposals[proposalId].data = data;
         proposals[proposalId].approvalCount = 0;
         proposals[proposalId].status = PROPOSAL_STATUS_PENDING;
         pendingProposalIds.push(proposalId);
 
-        emit Propose(proxyAdmin, proxy, implementation, proposalId);
+        emit Propose(proposalId, target, proposalType, data);
     }
 
     function approveProposal(uint256 _proposalId, bool execute)
@@ -204,38 +199,20 @@ contract Multisig {
 
     function _executeProposal(uint256 _proposalId) internal {
         Proposal storage proposal = proposals[_proposalId];
-        // TODO
 
-        if (proposal.proposalType == proposalTypeUpgrade) {
-            proposal.target.upgradeTo(proposal.data);
-
-        } else if (proposal.proposalType == proposalTypeChangeAdmin) {
+        // 0 stands for proposalTypeUpgrade, 1 stands for proposalTypeChangeAdmin
+        if (proposal.proposalType) {
             proposal.target.changeAdmin(proposal.data);
         } else {
-            // TODO: revert
+            proposal.target.upgradeTo(proposal.data);
         }
-
-        // upgrade contract
-        _upgrade(proposal.proxyAdmin, proposal.proxy, proposal.implementation);
 
         // update proposal
         _deletePendingProposalId(_proposalId);
         proposals[_proposalId].status = PROPOSAL_STATUS_EXECUTED;
 
-        emit Execution(_proposalId, proposal.proxy, proposal.implementation);
+        emit Execution(_proposalId, proposal.target, proposal.proposalType, proposal.data);
     }
-
-    function _upgrade(ProxyAdmin proxyAdmin, TransparentUpgradeableProxy proxy, address implementation) internal {
-        proxyAdmin.upgrade(proxy, implementation);
-    }
-
-    // function _transfer(address _to, uint256 _amount) internal {
-    //     require(address(this).balance >= _amount, "InsufficientBalance");
-
-    //     payable(_to).transfer(_amount);
-
-    //     emit Transfer(_to, _amount);
-    // }
 
     function _deletePendingProposalId(uint256 _proposalId) internal {
         // find index to be deleted
