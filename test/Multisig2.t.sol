@@ -10,7 +10,7 @@ contract MultisigTest2 is Test {
     address public bob = address(0x2222);
     address public charlie = address(0x3333);
     address public daniel = address(0x4444);
-    address[] public ownersArr =  [alice, bob, charlie];
+    address[] public ownersArr = [alice, bob, charlie];
 
     Multisig2 multisig;
 
@@ -43,7 +43,7 @@ contract MultisigTest2 is Test {
         // execute automatically if get enough approval
         console.log(bob.balance);
         console.log(address(multisig).balance);
-    } 
+    }
 
     function testMul2() public {
         vm.deal(address(multisig), 10 ether);
@@ -54,7 +54,7 @@ contract MultisigTest2 is Test {
         // alice approve
         vm.prank(alice);
         multisig.approveProposal(1, true);
-        
+
         // alice execute
         vm.prank(alice);
         multisig.executeProposal(1);

@@ -4,10 +4,10 @@
 pragma solidity 0.8.10;
 
 import "./ImplementationExample.sol";
- 
-contract ImplementationExample2 is ImplementationExample{
+
+contract ImplementationExample2 is ImplementationExample {
     // Increments the stored value by 1
     function increment() public {
-        store(retrieve()+1);
+        store(retrieve() + 1);
     }
 }

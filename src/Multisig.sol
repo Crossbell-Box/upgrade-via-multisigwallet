@@ -66,9 +66,7 @@ contract Multisig {
         for (uint256 i = 0; i < _owners.length; i++) {
             address owner = _owners[i];
             require(
-                owner != address(0) &&
-                    owner != SENTINEL_OWNER &&
-                    currentOwner != owner,
+                owner != address(0) && owner != SENTINEL_OWNER && currentOwner != owner,
                 "InvalidOwner"
             );
             require(owners[owner] == address(0), "OwnerExists");
@@ -82,7 +80,11 @@ contract Multisig {
         emit Setup(msg.sender, _owners, ownersCount, threshold);
     }
 
-    function propose(TransparentUpgradeableProxy target, bool proposalType, address data) external onlyMember {
+    function propose(
+        TransparentUpgradeableProxy target,
+        bool proposalType,
+        address data
+    ) external onlyMember {
         proposalCount++;
         uint256 proposalId = proposalCount;
         // create proposal
@@ -96,10 +98,7 @@ contract Multisig {
         emit Propose(proposalId, target, proposalType, data);
     }
 
-    function approveProposal(uint256 _proposalId, bool execute)
-        external
-        onlyMember
-    {
+    function approveProposal(uint256 _proposalId, bool execute) external onlyMember {
         require(_isPendingProposal(_proposalId), "NotPendingProposal");
         require(!_hasApproved(msg.sender, _proposalId), "AlreadyApproved");
 
@@ -124,11 +123,7 @@ contract Multisig {
         emit Delete(msg.sender, _proposalId);
     }
 
-    function getPendingProposals()
-        external
-        view
-        returns (Proposal[] memory results)
-    {
+    function getPendingProposals() external view returns (Proposal[] memory results) {
         uint256 len = pendingProposalIds.length;
 
         results = new Proposal[](len);
@@ -226,9 +221,7 @@ contract Multisig {
             uint256 toDeleteIndex = valueIndex - 1;
             uint256 lastIndex = pendingProposalIds.length - 1;
             if (lastIndex != toDeleteIndex) {
-                pendingProposalIds[toDeleteIndex] = pendingProposalIds[
-                    lastIndex
-                ];
+                pendingProposalIds[toDeleteIndex] = pendingProposalIds[lastIndex];
             }
 
             // delete the slot
@@ -236,11 +229,7 @@ contract Multisig {
         }
     }
 
-    function _hasApproved(address _owner, uint256 _proposalId)
-        internal
-        view
-        returns (bool)
-    {
+    function _hasApproved(address _owner, uint256 _proposalId) internal view returns (bool) {
         uint256 valueIndex;
         Proposal memory proposal = proposals[_proposalId];
         for (uint256 i = 0; i < proposal.approvals.length; i++) {
@@ -254,11 +243,7 @@ contract Multisig {
         return valueIndex != 0;
     }
 
-    function _isPendingProposal(uint256 _proposalId)
-        internal
-        view
-        returns (bool)
-    {
+    function _isPendingProposal(uint256 _proposalId) internal view returns (bool) {
         uint256 valueIndex;
         for (uint256 i = 0; i < pendingProposalIds.length; i++) {
             if (_proposalId == pendingProposalIds[i]) {

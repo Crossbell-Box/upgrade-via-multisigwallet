@@ -23,10 +23,14 @@ contract UpgradeTest is Test {
         // check here:https://www.notion.so/practice-transparent-upgradeable-contract-5216c5f5737f49fbbfab7a5469adbe40
         // the third para is the calldata when calling initialize func
         //! how to get 0xfe4b84df?
-        // cast sig "initialize(uint256 _initialValue)" 
+        // cast sig "initialize(uint256 _initialValue)"
         // transparentUpgradeableProxy = new TransparentUpgradeableProxy(address(implementationExample), address(proxyAdmin), abi.encodeWithSelector(0xfe4b84df,1));
         // ! or in a better way: using funcxxx.selector
-        transparentUpgradeableProxy = new TransparentUpgradeableProxy(address(implementationExample), address(proxyAdmin), abi.encodeWithSelector(implementationExample.initialize.selector, 1));
+        transparentUpgradeableProxy = new TransparentUpgradeableProxy(
+            address(implementationExample),
+            address(proxyAdmin),
+            abi.encodeWithSelector(implementationExample.initialize.selector, 1)
+        );
     }
 
     function testGetInformation() public {
@@ -57,7 +61,7 @@ contract UpgradeTest is Test {
 
     function testProxy() public {
         //! how to call retrive() via proxy?
-        // the initial value is 1  
+        // the initial value is 1
         // TODO
     }
 
@@ -66,6 +70,4 @@ contract UpgradeTest is Test {
         vm.startPrank(alice);
         proxyAdmin.upgrade(transparentUpgradeableProxy, address(implementationExample2));
     }
-
-
 }
