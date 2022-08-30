@@ -35,29 +35,42 @@ contract MultisigTest is Test {
         // 2. alice and bob approve the proposal
         vm.prank(alice);
         multisig.approveProposal(1, true);
-        vm.prank(alice);
-        multisig.executeProposal(1);
+        vm.prank(bob);
+        // once there are enough approvals, execute automatically
+        multisig.approveProposal(1, true);
     }
 
     function testProposeToChangeAdmin() public {
         // 1. alice propose to change admin in to alice
-        vm.startPrank(alice);
+        vm.prank(alice);
         multisig.propose(transparentUpgradeableProxy, true, address(alice));
-        multisig.executeProposal(1);
+        // 2. alice and bob approve
+        vm.prank(alice);
+        multisig.approveProposal(1, true);
+        vm.prank(bob);
+        multisig.approveProposal(1, true);
+        // check the admin has changed
+        vm.prank(alice);
         address admin = transparentUpgradeableProxy.admin();
         assertEq(admin, alice);
     }
 
-
-    function testGetProposalCount() public {
+    function testMultisigRules() public {
         // owner can propose but others can't
         vm.expectRevert(abi.encodePacked("NotOwner"));
         vm.prank(daniel);
         multisig.propose(transparentUpgradeableProxy, false, address(implementationExample2));
-        vm.prank(alice);
+        vm.prank(bob);
         multisig.propose(transparentUpgradeableProxy, false, address(implementationExample2));
+
+        // check the count before and after execution
         uint256 count = multisig.getProposalCount();
         assertEq(count, 1);
-        multisig.getAllProposals(1, 1);
+        vm.prank(alice);
+        multisig.approveProposal(1, true);
+        vm.prank(bob);
+        multisig.approveProposal(1, true);
+        uint256 count2 = multisig.getProposalCount();
+        assertEq(count2, 1);
     }
 }

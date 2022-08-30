@@ -124,13 +124,6 @@ contract Multisig {
         emit Delete(msg.sender, _proposalId);
     }
 
-    function executeProposal(uint256 _proposalId) external onlyMember {
-        require(_isPendingProposal(_proposalId), "NotPendingProposal");
-
-        // execute proposal
-        _executeProposal(_proposalId);
-    }
-
     function getPendingProposals()
         external
         view
