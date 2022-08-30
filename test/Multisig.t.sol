@@ -13,7 +13,7 @@ contract MultisigTest is Test {
     address public bob = address(0x2222);
     address public charlie = address(0x3333);
     address public daniel = address(0x4444);
-    address[] public ownersArr =  [alice, bob, charlie, daniel];
+    address[] public ownersArr =  [alice, bob, charlie];
 
     Multisig multisig;
     ImplementationExample implementationExample;
@@ -21,7 +21,7 @@ contract MultisigTest is Test {
     TransparentUpgradeableProxy transparentUpgradeableProxy;
 
     function setUp() public {
-        multisig = new Multisig(ownersArr, 3);
+        multisig = new Multisig(ownersArr, 2);
         implementationExample = new ImplementationExample();
         implementationExample2 = new ImplementationExample2();
         // admin of transparentUpgradeableProxy is set to multisig

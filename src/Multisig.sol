@@ -57,7 +57,6 @@ contract Multisig {
     mapping(uint256 => Proposal) internal proposals;
     uint256[] internal pendingProposalIds;
 
-
     constructor(address[] memory _owners, uint256 _threshold) {
         require(_threshold > 0, "ThresholdIsZero");
         require(_threshold <= _owners.length, "ThresholdExceedsOwnersCount");
@@ -199,6 +198,7 @@ contract Multisig {
 
     function _executeProposal(uint256 _proposalId) internal {
         Proposal storage proposal = proposals[_proposalId];
+        require(proposal.approvalCount >= threshold, "NotEnoughApproval");
 
         // 0 stands for proposalTypeUpgrade, 1 stands for proposalTypeChangeAdmin
         if (proposal.proposalType) {

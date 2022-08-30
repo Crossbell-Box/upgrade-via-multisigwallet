@@ -34,16 +34,31 @@ contract MultisigTest2 is Test {
         // alice propose to transfer
         vm.prank(alice);
         multisig.proposeTransfer(bob, 1);
+        // alice approve
+        vm.prank(alice);
+        multisig.approveProposal(1, true);
         // bob approve
         vm.prank(bob);
         multisig.approveProposal(1, true);
-        // charlie approve
-        vm.prank(charlie);
-        multisig.approveProposal(1, true);
-        vm.prank(alice);
         // execute automatically if get enough approval
-        // multisig.executeProposal(1);
         console.log(bob.balance);
         console.log(address(multisig).balance);
     } 
+
+    function testMul2() public {
+        vm.deal(address(multisig), 10 ether);
+        console.log(address(multisig).balance);
+        // alice propose to transfer
+        vm.prank(alice);
+        multisig.proposeTransfer(bob, 1);
+        // alice approve
+        vm.prank(alice);
+        multisig.approveProposal(1, true);
+        
+        // alice execute
+        vm.prank(alice);
+        multisig.executeProposal(1);
+        console.log(bob.balance);
+        console.log(address(multisig).balance);
+    }
 }
