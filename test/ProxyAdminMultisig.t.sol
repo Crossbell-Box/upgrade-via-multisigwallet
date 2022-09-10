@@ -116,19 +116,16 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         proxyAdminMultisig.propose(target, "Upgrade", address(upgradeV2));
 
         // check proposal status
-        _checkProposal(1, target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2), 0, new address[](0), Constants.PROPOSAL_STATUS_PENDING);
+        _checkPendingProposal(1, target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2), 0, new address[](0), Constants.PROPOSAL_STATUS_PENDING);
 
         // alice approve the proposal
         expectEmit(CheckTopic1 | CheckTopic2 | CheckTopic3 | CheckData);
         emit Approval(alice, 1);
         proxyAdminMultisig.approveProposal(1);
 
-        ProxyAdminMultisig.Proposal[] memory proposals2 = proxyAdminMultisig.getPendingProposals();
-        assertEq(proposals2[0].target, target);
-        assertEq(proposals2[0].proposalType, "Upgrade");
-        assertEq(proposals2[0].data, address(upgradeV2));
-        assertEq(proposals2[0].approvalCount, 1);
-        assertEq(proposals2[0].status, "Pending");
+        address[] memory approved = new address[](1);
+        approved[0] = alice;
+        _checkPendingProposal(1, target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2), 1, approved, Constants.PROPOSAL_STATUS_PENDING);
         vm.stopPrank();
 
         // shouldn't upgrade when there is not enough approval
@@ -144,14 +141,9 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         emit Upgrade(target, address(upgradeV2));
         proxyAdminMultisig.approveProposal(1);
         // check all proposal
-        ProxyAdminMultisig.Proposal[] memory proposals3 = proxyAdminMultisig.getAllProposals(0, 1);
-        assertEq(proposals3[0].target, target);
-        assertEq(proposals3[0].proposalType, "Upgrade");
-        assertEq(proposals3[0].data, address(upgradeV2));
-        assertEq(proposals3[0].approvalCount, 2);
-        assertEq(proposals3[0].status, "Executed");
-
+        _checkAllProposal(1, target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2), 2, ownersArr2, Constants.PROPOSAL_STATUS_EXECUTED);
         vm.stopPrank();
+
         // once there are enough approvals, execute automatically
         vm.prank(address(proxyAdminMultisig));
         address postImplementation = transparentUpgradeableProxy.implementation();
@@ -177,32 +169,27 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
 
         // check proposal status
         ProxyAdminMultisig.Proposal[] memory proposalsC1 = proxyAdminMultisig.getPendingProposals();
-        assertEq(proposalsC1[0].target, target);
-        assertEq(proposalsC1[0].proposalType, "ChangeAdmin");
-        assertEq(proposalsC1[0].data, address(alice));
-        assertEq(proposalsC1[0].approvalCount, 0);
-        assertEq(proposalsC1[0].status, "Pending");
-
-        uint256 countC1 = proxyAdminMultisig.getProposalCount();
-        assertEq(countC1, 1);
+        _checkPendingProposal(1, target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, alice, 0, new address[](0), Constants.PROPOSAL_STATUS_PENDING);
+        // check proposal count
+        assertEq(proxyAdminMultisig.getProposalCount(), 1);
 
         // 2. alice and bob approve
         vm.prank(alice);
         proxyAdminMultisig.approveProposal(1);
         // check proposal status
-        ProxyAdminMultisig.Proposal[] memory proposalsC2 = proxyAdminMultisig.getPendingProposals();
-        assertEq(proposalsC2[0].target, target);
-        assertEq(proposalsC2[0].proposalType, "ChangeAdmin");
-        assertEq(proposalsC2[0].data, address(alice));
-        assertEq(proposalsC2[0].approvalCount, 1);
-        assertEq(proposalsC2[0].status, "Pending");
-        uint256 countC2 = proxyAdminMultisig.getProposalCount();
-        assertEq(countC2, 1);
+        address[] memory approved = new address[](1);
+        approved[0] = alice;
+        _checkPendingProposal(1, target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, alice, 1, approved, Constants.PROPOSAL_STATUS_PENDING);
+        // check proposal count
+        assertEq(proxyAdminMultisig.getProposalCount(), 1);
         vm.prank(bob);
         proxyAdminMultisig.approveProposal(1);
+        // check proposal status
+        _checkAllProposal(1, target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, alice, 2, ownersArr2, Constants.PROPOSAL_STATUS_EXECUTED);
         // check count
         uint256 countC3 = proxyAdminMultisig.getProposalCount();
         assertEq(countC3, 1);
+        
         // check the admin has changed
         vm.prank(alice);
         address admin = transparentUpgradeableProxy.admin();
@@ -279,7 +266,7 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         // TODO: can't delete an executed proposal
     }
 
-    function _checkProposal(
+    function _checkPendingProposal(
         uint256 _proposalId,
         address _target,
         string memory _proposalType,
@@ -290,6 +277,25 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
     ) internal {
         ProxyAdminMultisig.Proposal[] memory _proposals = proxyAdminMultisig.getPendingProposals();
         ProxyAdminMultisig.Proposal memory _proposal = _proposals[_proposalId - 1];
+        assertEq(_proposal.target, _target);
+        assertEq(_proposal.proposalType, _proposalType);
+        assertEq(_proposal.data, _data);
+        assertEq(_proposal.approvalCount, _approvalCount);
+        assertEq(_proposal.approvals, _approvals);
+        assertEq(_proposal.status, _status);
+    }
+
+    function _checkAllProposal(
+        uint256 _proposalId,
+        address _target,
+        string memory _proposalType,
+        address _data,
+        uint256 _approvalCount,
+        address[] memory _approvals,
+        string memory _status
+    ) internal {
+        ProxyAdminMultisig.Proposal[] memory _proposals = proxyAdminMultisig.getAllProposals(_proposalId-1, 1);
+        ProxyAdminMultisig.Proposal memory _proposal = _proposals[0];
         assertEq(_proposal.target, _target);
         assertEq(_proposal.proposalType, _proposalType);
         assertEq(_proposal.data, _data);
