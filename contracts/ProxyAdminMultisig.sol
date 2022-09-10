@@ -81,6 +81,17 @@ contract ProxyAdminMultisig {
         emit Setup(msg.sender, _owners, ownersCount, threshold);
     }
 
+    // TODO
+    // function addOwner(address _newOwner) external onlyMember{
+    // }
+
+    // function deleteOwner(address _targetOwner) onlyMember{
+
+    // }
+
+    // function updateThreshold(uint256 _newThreshold) onlyMember{
+    // }
+
     function propose(
         address target,
         string calldata proposalType,
