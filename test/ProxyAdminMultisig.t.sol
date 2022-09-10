@@ -189,7 +189,7 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         // check count
         uint256 countC3 = proxyAdminMultisig.getProposalCount();
         assertEq(countC3, 1);
-        
+
         // check the admin has changed
         vm.prank(alice);
         address admin = transparentUpgradeableProxy.admin();
@@ -240,30 +240,41 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         vm.prank(alice);
         proxyAdminMultisig.propose(target, "ChangeAdmin", address(alice));
 
-        uint256 count = proxyAdminMultisig.getProposalCount();
-        assertEq(count, 1);
+        // check count
+        assertEq(proxyAdminMultisig.getProposalCount(), 1);
         vm.prank(alice);
         proxyAdminMultisig.deleteProposal(1);
+
+        // check count after deleting
         // delete only remove the proposal id from pending list
-        uint256 count2 = proxyAdminMultisig.getProposalCount();
-        assertEq(count2, 1);
+        assertEq(proxyAdminMultisig.getProposalCount(), 1);
+
+        // check proposal status
+        _checkAllProposal(1, target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, alice, 0, new address[](0), Constants.PROPOSAL_STATUS_DELETED);
     }
 
     function testDeleteProposalFail() public {
         vm.prank(alice);
         proxyAdminMultisig.propose(target, "ChangeAdmin", address(alice));
-
-        uint256 count = proxyAdminMultisig.getProposalCount();
-        assertEq(count, 1);
+        assertEq(proxyAdminMultisig.getProposalCount(), 1);
+        
         vm.prank(daniel);
         vm.expectRevert(abi.encodePacked("NotOwner"));
         proxyAdminMultisig.deleteProposal(1);
+        assertEq(proxyAdminMultisig.getProposalCount(), 1);
 
         vm.expectRevert(abi.encodePacked("NotPendingProposal"));
         vm.prank(alice);
         proxyAdminMultisig.deleteProposal(2);
 
-        // TODO: can't delete an executed proposal
+        // can't delete executed proposals
+        vm.prank(alice);
+        proxyAdminMultisig.approveProposal(1);
+        vm.prank(bob);
+        proxyAdminMultisig.approveProposal(1);
+        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
+        vm.prank(alice);
+        proxyAdminMultisig.deleteProposal(1);
     }
 
     function _checkPendingProposal(
