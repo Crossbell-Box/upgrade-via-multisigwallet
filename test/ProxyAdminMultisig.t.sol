@@ -387,4 +387,26 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         assertEq(ownersCount, _ownersCount);
         assertEq(owners, _owners);
     }
+
+    function testAddOwner() public {
+        assert(!proxyAdminMultisig.isOwner(daniel));
+        vm.prank(alice);
+        proxyAdminMultisig.addOwner(daniel);
+        assert(proxyAdminMultisig.isOwner(daniel));
+    }
+
+    function testAddOwnerFail() public {
+        vm.expectRevert(abi.encodePacked("NotOwner"));
+        proxyAdminMultisig.addOwner(daniel);
+        
+        vm.expectRevert(abi.encodePacked("InvalidOwner"));
+        vm.startPrank(alice);
+        proxyAdminMultisig.addOwner(address(0x0));
+
+        vm.expectRevert(abi.encodePacked("OwnerExists"));
+        proxyAdminMultisig.addOwner(Constants.SENTINEL_OWNER);
+
+        vm.expectRevert(abi.encodePacked("OwnerExists"));
+        proxyAdminMultisig.addOwner(alice);
+    }
 }

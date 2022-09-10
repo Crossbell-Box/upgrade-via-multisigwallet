@@ -82,8 +82,17 @@ contract ProxyAdminMultisig {
     }
 
     // TODO
-    // function addOwner(address _newOwner) external onlyMember{
-    // }
+    function addOwner(address _newOwner) external onlyMember{
+        require(owners[_newOwner] == address(0), "OwnerExists");
+        require(
+                _newOwner != address(0) && _newOwner != Constants.SENTINEL_OWNER,
+                "InvalidOwner"
+            );
+        address[] memory _owners = _getOwners();
+        address last = _owners[_owners.length-1];
+        owners[last] = _newOwner;
+        owners[_newOwner] = Constants.SENTINEL_OWNER;
+    }
 
     // function deleteOwner(address _targetOwner) onlyMember{
 
