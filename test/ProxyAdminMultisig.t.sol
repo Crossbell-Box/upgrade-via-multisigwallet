@@ -71,12 +71,13 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
 
     function testConstruct() public {
         proxyAdminMultisig = new ProxyAdminMultisig(ownersArr3, 2);
+        _checkWalletDetail(2, 3, ownersArr3);
         proxyAdminMultisig = new ProxyAdminMultisig(ownersArr3, 3);
+        _checkWalletDetail(3, 3, ownersArr3);
         proxyAdminMultisig = new ProxyAdminMultisig(ownersArr2, 1);
+        _checkWalletDetail(1, 2, ownersArr2);
         proxyAdminMultisig = new ProxyAdminMultisig(ownersArr2, 2);
-
-        // TODO: check status
-        // getWalletDetail
+        _checkWalletDetail(2, 2, ownersArr2);
     }
 
     function testConstructFail() public {
@@ -115,8 +116,7 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         proxyAdminMultisig.propose(target, "Upgrade", address(upgradeV2));
 
         // check proposal status
-        ProxyAdminMultisig.Proposal[] memory proposals1 = proxyAdminMultisig.getPendingProposals();
-        _checkProposal(proposals1[0], target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2), 0, new address[](0), Constants.PROPOSAL_STATUS_PENDING);
+        _checkProposal(1, target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2), 0, new address[](0), Constants.PROPOSAL_STATUS_PENDING);
 
         // alice approve the proposal
         expectEmit(CheckTopic1 | CheckTopic2 | CheckTopic3 | CheckData);
@@ -280,20 +280,35 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
     }
 
     function _checkProposal(
-        ProxyAdminMultisig.Proposal memory proposal,
-        address target,
-        string memory proposalType,
-        address data,
-        uint256 approvalCount,
-        address[] memory approvals,
-        string memory status
+        uint256 _proposalId,
+        address _target,
+        string memory _proposalType,
+        address _data,
+        uint256 _approvalCount,
+        address[] memory _approvals,
+        string memory _status
     ) internal {
-        assertEq(proposal.target, target);
-        assertEq(proposal.proposalType, proposalType);
-        assertEq(proposal.data, data);
-        assertEq(proposal.approvalCount, approvalCount);
-        assertEq(proposal.approvals, approvals);
-        assertEq(proposal.status, status);
+        ProxyAdminMultisig.Proposal[] memory _proposals = proxyAdminMultisig.getPendingProposals();
+        ProxyAdminMultisig.Proposal memory _proposal = _proposals[_proposalId - 1];
+        assertEq(_proposal.target, _target);
+        assertEq(_proposal.proposalType, _proposalType);
+        assertEq(_proposal.data, _data);
+        assertEq(_proposal.approvalCount, _approvalCount);
+        assertEq(_proposal.approvals, _approvals);
+        assertEq(_proposal.status, _status);
     }
 
+    function _checkWalletDetail(
+        uint256 _threshold,
+        uint256 _ownersCount,
+        address[] memory  _owners
+    ) internal {
+        uint256 threshold;
+        uint256 ownersCount;
+        address[] memory owners;
+        (threshold, ownersCount, owners) = proxyAdminMultisig.getWalletDetail();
+        assertEq(threshold, _threshold);
+        assertEq(ownersCount, _ownersCount);
+        assertEq(owners, _owners);
+    }
 }
