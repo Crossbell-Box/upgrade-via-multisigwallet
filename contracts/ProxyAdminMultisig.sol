@@ -5,7 +5,6 @@ pragma solidity 0.8.10;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "./libraries/Constants.sol";
 
-
 interface ITransparentUpgradeableProxy {
     function changeAdmin(address newAdmin) external;
 
@@ -42,7 +41,6 @@ contract ProxyAdminMultisig {
         require(owners[msg.sender] != address(0), "NotOwner");
         _;
     }
-
 
     mapping(address => address) internal owners;
     uint256 internal ownersCount;
@@ -89,7 +87,8 @@ contract ProxyAdminMultisig {
         address data
     ) external onlyMember {
         require(
-            keccak256(bytes(proposalType)) == keccak256(bytes(Constants.PROPOSAL_TYPE_CHANGE_ADMIN)) ||
+            keccak256(bytes(proposalType)) ==
+                keccak256(bytes(Constants.PROPOSAL_TYPE_CHANGE_ADMIN)) ||
                 keccak256(bytes(proposalType)) == keccak256(bytes("Upgrade")),
             "Unexpected proposal type"
         );
@@ -196,10 +195,16 @@ contract ProxyAdminMultisig {
         Proposal storage proposal = proposals[_proposalId];
         require(proposal.approvalCount >= threshold, "NotEnoughApproval");
 
-        if (keccak256(bytes(proposal.proposalType)) == keccak256(bytes(Constants.PROPOSAL_TYPE_CHANGE_ADMIN))) {
+        if (
+            keccak256(bytes(proposal.proposalType)) ==
+            keccak256(bytes(Constants.PROPOSAL_TYPE_CHANGE_ADMIN))
+        ) {
             ITransparentUpgradeableProxy(proposal.target).changeAdmin(proposal.data);
             emit ChangeAdmin(proposal.target, proposal.data);
-        } else if (keccak256(bytes(proposal.proposalType)) == keccak256(bytes(Constants.PROPOSAL_TYPE_UPGRADE))) {
+        } else if (
+            keccak256(bytes(proposal.proposalType)) ==
+            keccak256(bytes(Constants.PROPOSAL_TYPE_UPGRADE))
+        ) {
             ITransparentUpgradeableProxy(proposal.target).upgradeTo(proposal.data);
             emit Upgrade(proposal.target, proposal.data);
         } else {

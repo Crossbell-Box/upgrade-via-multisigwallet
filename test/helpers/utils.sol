@@ -25,5 +25,4 @@ contract Utils is Test {
 
         vm.expectEmit(checkTopic1, checkTopic2, checkTopic3, checkData);
     }
-
 }
