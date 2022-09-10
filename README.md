@@ -1,42 +1,57 @@
-# <h1 align="center"> Hardhat x Foundry Template </h1>
+<p align='center'>
+<img src="https://avatars.githubusercontent.com/u/103565959" alt="CrossSync Logo" width="60" height="60" />
+</p>
 
-**Template repository for getting started quickly with Hardhat and Foundry in one project**
+<h1  align='center'>Crossbell</h1>
 
-![Github Actions](https://github.com/devanonon/hardhat-foundry-template/workflows/test/badge.svg)
+> Cross-platform, ring a bell.
 
-### Getting Started
+<p align="center">
+    <br />
+    <a href="https://github.com/Crossbell-Box/Crossbell-Contracts/wiki"><strong>Explore the Wiki »</strong></a>
+    <br />
+    <br />
+    <a href="https://crossbell.io">View Website</a>
+    ·
+    <a href="https://discord.gg/ecpfdHHw">Join Discord</a>
+    ·
+    <a href="https://github.com/Crossbell-Box/Crossbell-Contracts/issues">Report Bug</a>
+  </p>
 
- * Use Foundry: 
-```bash
-forge install
-forge test
+## 🐳 Introduction
+
+Crossbell is an **ownership** **platform** composed of
+
+1. an EVM-compatible blockchain
+2. a protocol implemented by a set of smart contracts
+
+Specifically, the information generated from **social activities** will be the initial form of data-ownership by users on Crossbell.
+
+This repository is the implementation of the protocol.
+
+## ⚙ Development
+
+```shell
+yarn
+yarn test
+```
+Install forge if you don't have one:
+```shell
+# install foge
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+Compile and run test:
+```shell
+make
+# or
+make test
+# or run sigle test function using --match-test
+forge test --match-test testXXX  -vvvvv
+```
+Deploy:
+```shell
+chmod +x  ./scripts/deploy_XXX.sh 
+deploy_XXX.sh
 ```
 
- * Use Hardhat:
-```bash
-npm install
-npx hardhat test
-```
-
-### Features
-
- * Write / run tests with either Hardhat or Foundry:
-```bash
-forge test
-# or
-npx hardhat test
-```
-
- * Use Hardhat's task framework
-```bash
-npx hardhat example
-```
-
- * Install libraries with Foundry which work with Hardhat.
-```bash
-forge install rari-capital/solmate # Already in this repo, just an example
-```
-
-### Notes
-
-Whenever you install new libraries using Foundry, make sure to update your `remappings.txt` file by running `forge remappings > remappings.txt`. This is required because we use `hardhat-preprocessor` and the `remappings.txt` file to allow Hardhat to resolve libraries you install with Foundry.

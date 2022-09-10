@@ -1,17 +1,24 @@
-# Foundry
+node_modules
+.env
+coverage
+coverage.json
+typechain
 cache/
 out/
-lib/
-
-# JS
-node_modules/
 
 #Hardhat files
-cache_hardhat/
-artifacts/
+cache
+cache-foundry
+artifacts
+artifacts-foundry
 
-#Hardhat plugin files
-typechain-types/
+# Ignore Environment Variables!
+.env
+.env.prod
 
-# vscode
+# Ignore all vscode settings
 .vscode/
+
+# Ignore flattened files
+flattened.txt
+node_modules
