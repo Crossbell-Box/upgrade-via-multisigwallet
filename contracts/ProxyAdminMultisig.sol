@@ -99,15 +99,17 @@ contract ProxyAdminMultisig {
                 _targetOwner != address(0) && _targetOwner != Constants.SENTINEL_OWNER,
                 "InvalidOwner"
             );
-        address _followingOne = owners[_targetOwner];
-        // delete target owner
-        owners[_targetOwner] = address(0);
         address[] memory _ownersArr = _getOwners();
+        _ownersArr[_ownersArr.length-1] = Constants.SENTINEL_OWNER;
+        address _followingOne = owners[_targetOwner];
+
         for (uint256 i = 0; i < _ownersArr.length; i++){
             address owner = _ownersArr[i];
             if (owners[owner] == _targetOwner) {
                 address _previousOne = owner;
                 owners[_previousOne] = _followingOne;
+                // delete target owner
+                owners[_targetOwner] = address(0);
                 break;
             }
         }
