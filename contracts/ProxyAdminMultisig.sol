@@ -81,7 +81,6 @@ contract ProxyAdminMultisig {
         emit Setup(msg.sender, _owners, ownersCount, threshold);
     }
 
-    // TODO
     function addOwner(address _newOwner) external onlyMember{
         require(owners[_newOwner] == address(0), "OwnerExists");
         require(
@@ -94,9 +93,25 @@ contract ProxyAdminMultisig {
         owners[_newOwner] = Constants.SENTINEL_OWNER;
     }
 
-    // function deleteOwner(address _targetOwner) onlyMember{
-
-    // }
+    function deleteOwner(address _targetOwner) external onlyMember{
+        require(owners[_targetOwner] != address(0), "OwnerNotExists");
+        require(
+                _targetOwner != address(0) && _targetOwner != Constants.SENTINEL_OWNER,
+                "InvalidOwner"
+            );
+        address _followingOne = owners[_targetOwner];
+        // delete target owner
+        owners[_targetOwner] = address(0);
+        address[] memory _ownersArr = _getOwners();
+        for (uint256 i = 0; i < _ownersArr.length; i++){
+            address owner = _ownersArr[i];
+            if (owners[owner] == _targetOwner) {
+                address _previousOne = owner;
+                owners[_previousOne] = _followingOne;
+                break;
+            }
+        }
+    }
 
     // function updateThreshold(uint256 _newThreshold) onlyMember{
     // }
