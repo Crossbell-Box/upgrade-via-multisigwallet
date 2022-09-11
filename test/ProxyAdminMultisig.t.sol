@@ -170,8 +170,7 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
 
         // once there are enough approvals, execute automatically
         vm.prank(address(proxyAdminMultisig));
-        address postImplementation = transparentUpgradeableProxy.implementation();
-        assertEq(postImplementation, address(upgradeV2));
+        assertEq(transparentUpgradeableProxy.implementation(), address(upgradeV2));
     }
 
     function testProposeToUpgradeFail() public {
@@ -240,8 +239,7 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
 
         // check the admin has changed
         vm.prank(alice);
-        address admin = transparentUpgradeableProxy.admin();
-        assertEq(admin, alice);
+        assertEq(transparentUpgradeableProxy.admin(), alice);
     }
 
     function testApproveProposal() public {
@@ -331,6 +329,33 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         vm.expectRevert(abi.encodePacked("NotPendingProposal"));
         vm.prank(alice);
         proxyAdminMultisig.deleteProposal(1);
+    }
+
+    function testMultipleProposals() public {
+        // alice proposal to upgrade(proposalId=1)
+        vm.prank(alice);
+        proxyAdminMultisig.propose(target, "Upgrade", address(upgradeV2));
+
+        // bob propose to change admin(proposalId=2)
+        vm.prank(bob);
+        proxyAdminMultisig.propose(target, "ChangeAdmin", address(alice));
+
+        // alice approve 1 and 2
+        vm.startPrank(alice);
+        proxyAdminMultisig.approveProposal(1);
+        proxyAdminMultisig.approveProposal(2);
+        vm.stopPrank();
+        // charlie approve 1 and 2
+        vm.startPrank(charlie);
+        proxyAdminMultisig.approveProposal(1);
+        proxyAdminMultisig.approveProposal(2);
+        vm.stopPrank();
+
+        // check executed status
+        vm.prank(alice);
+        assertEq(transparentUpgradeableProxy.implementation(), address(upgradeV2));
+        vm.prank(alice);
+        assertEq(transparentUpgradeableProxy.admin(), alice);
     }
 
     function _checkPendingProposal(
