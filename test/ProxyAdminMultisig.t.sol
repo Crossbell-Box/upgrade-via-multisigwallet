@@ -35,6 +35,8 @@ interface DumbEmitterEvents {
     );
     event Upgrade(address target, address implementation);
     event ChangeAdmin(address target, address newAdmin);
+    event AddOwner(address);
+    event DeleteOwner(address);
 }
 
 contract MultisigTest is DumbEmitterEvents, Test, Utils {
@@ -353,46 +355,12 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         assertEq(_proposal.status, _status);
     }
 
-    function _checkAllProposal(
-        uint256 _proposalId,
-        address _target,
-        string memory _proposalType,
-        address _data,
-        uint256 _approvalCount,
-        address[] memory _approvals,
-        string memory _status
-    ) internal {
-        ProxyAdminMultisig.Proposal[] memory _proposals = proxyAdminMultisig.getAllProposals(
-            _proposalId - 1,
-            1
-        );
-        ProxyAdminMultisig.Proposal memory _proposal = _proposals[0];
-        assertEq(_proposal.target, _target);
-        assertEq(_proposal.proposalType, _proposalType);
-        assertEq(_proposal.data, _data);
-        assertEq(_proposal.approvalCount, _approvalCount);
-        assertEq(_proposal.approvals, _approvals);
-        assertEq(_proposal.status, _status);
-    }
-
-    function _checkWalletDetail(
-        uint256 _threshold,
-        uint256 _ownersCount,
-        address[] memory _owners
-    ) internal {
-        uint256 threshold;
-        uint256 ownersCount;
-        address[] memory owners;
-        (threshold, ownersCount, owners) = proxyAdminMultisig.getWalletDetail();
-        assertEq(threshold, _threshold);
-        assertEq(ownersCount, _ownersCount);
-        assertEq(owners, _owners);
-    }
-
     function testAddOwner() public {
         _checkWalletDetail(2, 3, ownersArr3);
         assert(!proxyAdminMultisig.isOwner(daniel));
         vm.prank(alice);
+        expectEmit(CheckTopic1 | CheckTopic2 | CheckTopic3 | CheckData);
+        emit AddOwner(daniel);
         proxyAdminMultisig.addOwner(daniel);
         _checkWalletDetail(2, 4, ownersArr4);
         assert(proxyAdminMultisig.isOwner(daniel));
@@ -436,6 +404,8 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         // alice delete bob
         assert(proxyAdminMultisig.isOwner(bob));
         vm.prank(alice);
+        expectEmit(CheckTopic1 | CheckTopic2 | CheckTopic3 | CheckData);
+        emit DeleteOwner(bob);
         proxyAdminMultisig.deleteOwner(bob);
         assert(!proxyAdminMultisig.isOwner(bob));
         address[] memory wallet2 = new address[](2);
@@ -462,5 +432,64 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         proxyAdminMultisig.deleteOwner(daniel);
         assert(!proxyAdminMultisig.isOwner(daniel));
         _checkWalletDetail(2, 1, wallet1);
+    }
+
+    function testUpdateThreshold() public {
+        vm.prank(alice);
+        proxyAdminMultisig.updateThreshold(3);
+        _checkWalletDetail(3, 3, ownersArr3);
+    }
+
+    function testUpdateThresholdFail() public {
+        // only owners can update threshold
+        vm.prank(daniel);
+        vm.expectRevert(abi.encodePacked("NotOwner"));
+        proxyAdminMultisig.updateThreshold(3);
+
+        // threshold can't be 0
+        vm.prank(alice);
+        vm.expectRevert(abi.encodePacked("ThresholdIsZero"));
+        proxyAdminMultisig.updateThreshold(0);
+
+        // threshold can't > ownerCount
+        vm.prank(alice);
+        vm.expectRevert(abi.encodePacked("ThresholdExceedsOwnersCount"));
+        proxyAdminMultisig.updateThreshold(4);
+    }
+
+    function _checkAllProposal(
+        uint256 _proposalId,
+        address _target,
+        string memory _proposalType,
+        address _data,
+        uint256 _approvalCount,
+        address[] memory _approvals,
+        string memory _status
+    ) internal {
+        ProxyAdminMultisig.Proposal[] memory _proposals = proxyAdminMultisig.getAllProposals(
+            _proposalId - 1,
+            1
+        );
+        ProxyAdminMultisig.Proposal memory _proposal = _proposals[0];
+        assertEq(_proposal.target, _target);
+        assertEq(_proposal.proposalType, _proposalType);
+        assertEq(_proposal.data, _data);
+        assertEq(_proposal.approvalCount, _approvalCount);
+        assertEq(_proposal.approvals, _approvals);
+        assertEq(_proposal.status, _status);
+    }
+
+    function _checkWalletDetail(
+        uint256 _threshold,
+        uint256 _ownersCount,
+        address[] memory _owners
+    ) internal {
+        uint256 threshold;
+        uint256 ownersCount;
+        address[] memory owners;
+        (threshold, ownersCount, owners) = proxyAdminMultisig.getWalletDetail();
+        assertEq(threshold, _threshold);
+        assertEq(ownersCount, _ownersCount);
+        assertEq(owners, _owners);
     }
 }

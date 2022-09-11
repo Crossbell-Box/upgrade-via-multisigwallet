@@ -36,6 +36,8 @@ contract ProxyAdminMultisig {
     );
     event Upgrade(address target, address implementation);
     event ChangeAdmin(address target, address newAdmin);
+    event AddOwner(address);
+    event DeleteOwner(address);
 
     modifier onlyMember() {
         require(owners[msg.sender] != address(0), "NotOwner");
@@ -84,12 +86,14 @@ contract ProxyAdminMultisig {
     function addOwner(address _newOwner) external onlyMember {
         require(owners[_newOwner] == address(0), "OwnerExists");
         require(_newOwner != address(0) && _newOwner != Constants.SENTINEL_OWNER, "InvalidOwner");
+
         address[] memory _ownersArr = _getOwners();
         address _lastOne = _ownersArr[_ownersArr.length - 1];
         owners[_lastOne] = _newOwner;
         owners[_newOwner] = Constants.SENTINEL_OWNER;
-
         ownersCount += 1;
+
+        emit AddOwner(_newOwner);
     }
 
     function deleteOwner(address _targetOwner) external onlyMember {
@@ -100,7 +104,6 @@ contract ProxyAdminMultisig {
         );
 
         address _followingOne = owners[_targetOwner];
-
         address[] memory _ownersArr = _getOwners();
         _ownersArr[_ownersArr.length - 1] = Constants.SENTINEL_OWNER;
         for (uint256 i = 0; i < _ownersArr.length; i++) {
@@ -114,10 +117,16 @@ contract ProxyAdminMultisig {
                 break;
             }
         }
+
+        emit DeleteOwner(_targetOwner);
     }
 
-    // function updateThreshold(uint256 _newThreshold) onlyMember{
-    // }
+    function updateThreshold(uint256 _newThreshold) external onlyMember{
+        address[] memory _owners = _getOwners();
+        require(_newThreshold > 0, "ThresholdIsZero");
+        require(_newThreshold <= _owners.length, "ThresholdExceedsOwnersCount");
+        threshold = _newThreshold;
+    }
 
     function propose(
         address target,
