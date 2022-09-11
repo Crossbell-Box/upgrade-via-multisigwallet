@@ -44,6 +44,7 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
     address public daniel = address(0x4444);
     address[] public ownersArr2 = [alice, bob];
     address[] public ownersArr3 = [alice, bob, charlie];
+    address[] public ownersArr4 = [alice, bob, charlie, daniel];
     address[] public replicatedOwners = [alice, alice];
     address[] public zeroOwners = [alice, address(0x0)];
     address[] public sentinelOwners = [alice, address(0x1)];
@@ -389,16 +390,37 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
     }
 
     function testAddOwner() public {
+        _checkWalletDetail(2, 3, ownersArr3);
         assert(!proxyAdminMultisig.isOwner(daniel));
         vm.prank(alice);
         proxyAdminMultisig.addOwner(daniel);
+        _checkWalletDetail(2, 4, ownersArr4);
         assert(proxyAdminMultisig.isOwner(daniel));
+
+        // add a previously deleted owner
+        vm.prank(alice);
+        proxyAdminMultisig.deleteOwner(charlie);
+        address[] memory wallet3 = new address[](3);
+        wallet3[0] = alice;
+        wallet3[1] = bob;
+        wallet3[2] = daniel;
+        _checkWalletDetail(2, 3, wallet3);
+        assert(!proxyAdminMultisig.isOwner(charlie));
+        vm.prank(alice);
+        proxyAdminMultisig.addOwner(charlie);
+        address[] memory wallet4 = new address[](4);
+        wallet4[0] = alice;
+        wallet4[1] = bob;
+        wallet4[2] = daniel;
+        wallet4[3] = charlie;
+        _checkWalletDetail(2, 4, wallet4);
+        assert(proxyAdminMultisig.isOwner(charlie));
     }
 
     function testAddOwnerFail() public {
         vm.expectRevert(abi.encodePacked("NotOwner"));
         proxyAdminMultisig.addOwner(daniel);
-        
+
         vm.expectRevert(abi.encodePacked("InvalidOwner"));
         vm.startPrank(alice);
         proxyAdminMultisig.addOwner(address(0x0));
@@ -408,5 +430,37 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
 
         vm.expectRevert(abi.encodePacked("OwnerExists"));
         proxyAdminMultisig.addOwner(alice);
+    }
+
+    function testDeleteOwner() public {
+        // alice delete bob
+        assert(proxyAdminMultisig.isOwner(bob));
+        vm.prank(alice);
+        proxyAdminMultisig.deleteOwner(bob);
+        assert(!proxyAdminMultisig.isOwner(bob));
+        address[] memory wallet2 = new address[](2);
+        wallet2[0] = alice;
+        wallet2[1] = charlie;
+        _checkWalletDetail(2, 2, wallet2);
+
+        // alice delete charlie
+        assert(proxyAdminMultisig.isOwner(charlie));
+        vm.prank(alice);
+        proxyAdminMultisig.deleteOwner(charlie);
+        assert(!proxyAdminMultisig.isOwner(charlie));
+        address[] memory wallet1 = new address[](1);
+        wallet1[0] = alice;
+        _checkWalletDetail(2, 1, wallet1);
+
+        // add new owner then delete
+        vm.prank(alice);
+        proxyAdminMultisig.addOwner(daniel);
+        wallet2[1] = daniel;
+        _checkWalletDetail(2, 2, wallet2);
+        assert(proxyAdminMultisig.isOwner(daniel));
+        vm.prank(alice);
+        proxyAdminMultisig.deleteOwner(daniel);
+        assert(!proxyAdminMultisig.isOwner(daniel));
+        _checkWalletDetail(2, 1, wallet1);
     }
 }

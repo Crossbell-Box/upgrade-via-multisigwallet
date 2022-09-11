@@ -81,35 +81,36 @@ contract ProxyAdminMultisig {
         emit Setup(msg.sender, _owners, ownersCount, threshold);
     }
 
-    function addOwner(address _newOwner) external onlyMember{
+    function addOwner(address _newOwner) external onlyMember {
         require(owners[_newOwner] == address(0), "OwnerExists");
-        require(
-                _newOwner != address(0) && _newOwner != Constants.SENTINEL_OWNER,
-                "InvalidOwner"
-            );
-        address[] memory _owners = _getOwners();
-        address last = _owners[_owners.length-1];
-        owners[last] = _newOwner;
+        require(_newOwner != address(0) && _newOwner != Constants.SENTINEL_OWNER, "InvalidOwner");
+        address[] memory _ownersArr = _getOwners();
+        address _lastOne = _ownersArr[_ownersArr.length - 1];
+        owners[_lastOne] = _newOwner;
         owners[_newOwner] = Constants.SENTINEL_OWNER;
+
+        ownersCount += 1;
     }
 
-    function deleteOwner(address _targetOwner) external onlyMember{
+    function deleteOwner(address _targetOwner) external onlyMember {
         require(owners[_targetOwner] != address(0), "OwnerNotExists");
         require(
-                _targetOwner != address(0) && _targetOwner != Constants.SENTINEL_OWNER,
-                "InvalidOwner"
-            );
-        address[] memory _ownersArr = _getOwners();
-        _ownersArr[_ownersArr.length-1] = Constants.SENTINEL_OWNER;
+            _targetOwner != address(0) && _targetOwner != Constants.SENTINEL_OWNER,
+            "InvalidOwner"
+        );
+
         address _followingOne = owners[_targetOwner];
 
-        for (uint256 i = 0; i < _ownersArr.length; i++){
+        address[] memory _ownersArr = _getOwners();
+        _ownersArr[_ownersArr.length - 1] = Constants.SENTINEL_OWNER;
+        for (uint256 i = 0; i < _ownersArr.length; i++) {
             address owner = _ownersArr[i];
             if (owners[owner] == _targetOwner) {
                 address _previousOne = owner;
                 owners[_previousOne] = _followingOne;
                 // delete target owner
                 owners[_targetOwner] = address(0);
+                ownersCount -= 1;
                 break;
             }
         }
