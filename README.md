@@ -2,32 +2,18 @@
 <img src="https://avatars.githubusercontent.com/u/103565959" alt="CrossSync Logo" width="60" height="60" />
 </p>
 
-<h1  align='center'>Crossbell</h1>
+<h1  align='center'>Upgrade via Multisig Contract</h1>
 
-> Cross-platform, ring a bell.
 
-<p align="center">
-    <br />
-    <a href="https://github.com/Crossbell-Box/Crossbell-Contracts/wiki"><strong>Explore the Wiki »</strong></a>
-    <br />
-    <br />
-    <a href="https://crossbell.io">View Website</a>
-    ·
-    <a href="https://discord.gg/ecpfdHHw">Join Discord</a>
-    ·
-    <a href="https://github.com/Crossbell-Box/Crossbell-Contracts/issues">Report Bug</a>
-  </p>
+## Introduction
 
-## 🐳 Introduction
+This repository is an implementation of a multisig contract that can be applied in general scenarios. 
 
-Crossbell is an **ownership** **platform** composed of
+Currently, this multisig contract is used to upgrade contracts. Crossbell-Box has several upgradeable contracts, which are previously controlled by the admin of TransparentUpgradeableProxy contracts. Having a this proxy contract controlled by a single address is not safe nor reasonable. So we transferred the ownership of TransparentUpgradeableProxy contract to this multisig contract.
 
-1. an EVM-compatible blockchain
-2. a protocol implemented by a set of smart contracts
+Currently, this multisig contract has 2 functionalities: `upgrade` and `change admin`. For proxy contracts that are already deployed, you need to call `changeAdmin` function and change the admin to this multisig contract. For new proxy contracts, you can directly input the multisig contract address into `constructor` when deploying. Complete usages can be found in [test cases](https://github.com/Crossbell-Box/upgrade-via-multisigwallet/blob/main/test/ProxyAdminMultisig.t.sol).
 
 Specifically, the information generated from **social activities** will be the initial form of data-ownership by users on Crossbell.
-
-This repository is the implementation of the protocol.
 
 ## ⚙ Development
 
