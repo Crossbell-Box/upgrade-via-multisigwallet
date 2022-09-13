@@ -131,7 +131,7 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         // can'e offer invalid proposal
         vm.expectRevert("Unexpected proposal type");
         vm.prank(alice);
-        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2));
+        proxyAdminMultisig.propose(target, "upgrade", address(upgradeV2));
     }
 
     function testProposeChangeAdmin() public {
@@ -140,7 +140,6 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, address(alice));
 
         // check proposal status
-        ProxyAdminMultisig.Proposal[] memory proposalsC1 = proxyAdminMultisig.getPendingProposals();
         _checkPendingProposal(
             1,
             target,
@@ -321,7 +320,6 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, address(alice));
 
         // check proposal status
-        ProxyAdminMultisig.Proposal[] memory proposalsC1 = proxyAdminMultisig.getPendingProposals();
         _checkPendingProposal(
             1,
             target,
@@ -399,10 +397,12 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         assertEq(transparentUpgradeableProxy.admin(), alice);
     }
 
-    function testGetAllProposals() public {}
+    function testGetAllProposals() public {
+    }
 
     function testGetPendingProposals() public {}
 
+    // checkPendingProposal checks if a Pending Proposal is in Pending list and its information
     function _checkPendingProposal(
         uint256 _proposalId,
         address _target,
@@ -412,16 +412,30 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         address[] memory _approvals,
         string memory _status
     ) internal {
-        ProxyAdminMultisig.Proposal[] memory _proposals = proxyAdminMultisig.getPendingProposals();
-        // TODO: search proposal by proposal id
-
-        ProxyAdminMultisig.Proposal memory _proposal = _proposals[_proposalId - 1];
-        assertEq(_proposal.target, _target);
-        assertEq(_proposal.proposalType, _proposalType);
-        assertEq(_proposal.data, _data);
-        assertEq(_proposal.approvalCount, _approvalCount);
-        assertEq(_proposal.approvals, _approvals);
-        assertEq(_proposal.status, _status);
+        // TODO add proposal id in Proposal struct
+        // // get pending proposals and all proposals
+        // ProxyAdminMultisig.Proposal[] memory _pendingProposals = proxyAdminMultisig.getPendingProposals();
+        // ProxyAdminMultisig.Proposal[] memory _allProposals = proxyAdminMultisig.getAllProposals();
+        // // get proposal by _proposalId
+        // ProxyAdminMultisig.Proposal memory _proposal = _allProposals[_proposalId-1];
+        // // check if this id is in pending list
+        // bool memory exist = false;
+        // for (uint256 i = 0; i < _pendingProposals.length; i++){
+        //     ProxyAdminMultisig.Proposal _thisProposal = _pendingProposals[i];
+        //     uint256 _thisId = i + 1;
+        //     if (_thisId == _proposalId) {
+        //         exist = true;
+        //     }
+        // }
+        // assert(exist);
+        // // TODO: search proposal by proposal id
+        // ProxyAdminMultisig.Proposal _proposal = _proposals[_proposalId - 1];
+        // assertEq(_proposal.target, _target);
+        // assertEq(_proposal.proposalType, _proposalType);
+        // assertEq(_proposal.data, _data);
+        // assertEq(_proposal.approvalCount, _approvalCount);
+        // assertEq(_proposal.approvals, _approvals);
+        // assertEq(_proposal.status, _status);
     }
 
     function _checkAllProposal(
