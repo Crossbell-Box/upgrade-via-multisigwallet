@@ -398,9 +398,52 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
     }
 
     function testGetAllProposals() public {
+        vm.prank(alice);
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2));
+        vm.prank(bob);
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, address(bob));
+
+        ProxyAdminMultisig.Proposal[] memory  _proposals = proxyAdminMultisig.getAllProposals(0, 100);
+        assertEq(_proposals.length, 2);
+        assertEq(proxyAdminMultisig.getAllProposals(0, 2).length, 2);
+        assertEq(proxyAdminMultisig.getAllProposals(1, 1).length, 1);
+        assertEq(proxyAdminMultisig.getAllProposals(1, 100).length, 1);
+
+        vm.prank(alice);
+        proxyAdminMultisig.approveProposal(1);
+        vm.prank(bob);
+        proxyAdminMultisig.approveProposal(1);
+        assertEq(proxyAdminMultisig.getAllProposals(0,100).length, 2);
+
+        vm.prank(alice);
+        proxyAdminMultisig.deleteProposal(2);
+        assertEq(proxyAdminMultisig.getAllProposals(0,100).length, 2);
     }
 
-    function testGetPendingProposals() public {}
+    function testGetAllProposalsFail() public {
+        // offset >= proposalCount returns nothing
+        ProxyAdminMultisig.Proposal[] memory  _proposals = proxyAdminMultisig.getAllProposals(2, 2);
+        assertEq(_proposals.length, 0);
+    }
+
+    function testGetPendingProposals() public {
+        assertEq(proxyAdminMultisig.getPendingProposals().length, 0);
+        vm.prank(alice);
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2));
+        vm.prank(bob);
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, address(bob));
+        assertEq(proxyAdminMultisig.getPendingProposals().length, 2);
+
+        vm.prank(alice);
+        proxyAdminMultisig.approveProposal(1);
+        vm.prank(bob);
+        proxyAdminMultisig.approveProposal(1);
+        assertEq(proxyAdminMultisig.getPendingProposals().length, 1);
+
+        vm.prank(alice);
+        proxyAdminMultisig.deleteProposal(2);
+        assertEq(proxyAdminMultisig.getPendingProposals().length, 0);
+    }
 
     // checkPendingProposal checks if a Pending Proposal is in Pending list and its information
     function _checkPendingProposal(
