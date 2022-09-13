@@ -89,7 +89,7 @@ contract ProxyAdminMultisig {
         require(
             keccak256(bytes(proposalType)) ==
                 keccak256(bytes(Constants.PROPOSAL_TYPE_CHANGE_ADMIN)) ||
-                keccak256(bytes(proposalType)) == keccak256(bytes("Upgrade")),
+                keccak256(bytes(proposalType)) == keccak256(bytes(Constants.PROPOSAL_TYPE_UPGRADE)),
             "Unexpected proposal type"
         );
         proposalCount++;
@@ -105,29 +105,29 @@ contract ProxyAdminMultisig {
         emit Propose(proposalId, target, proposalType, data);
     }
 
-    function approveProposal(uint256 _proposalId) external onlyMember {
-        require(_isPendingProposal(_proposalId), "NotPendingProposal");
-        require(!_hasApproved(msg.sender, _proposalId), "AlreadyApproved");
+    function approveProposal(uint256 proposalId) external onlyMember {
+        require(_isPendingProposal(proposalId), "NotPendingProposal");
+        require(!_hasApproved(msg.sender, proposalId), "AlreadyApproved");
 
         // approve proposal
-        proposals[_proposalId].approvalCount++;
-        proposals[_proposalId].approvals.push(msg.sender);
+        proposals[proposalId].approvalCount++;
+        proposals[proposalId].approvals.push(msg.sender);
 
-        emit Approval(msg.sender, _proposalId);
+        emit Approval(msg.sender, proposalId);
 
-        if (proposals[_proposalId].approvalCount >= threshold) {
-            _executeProposal(_proposalId);
+        if (proposals[proposalId].approvalCount >= threshold) {
+            _executeProposal(proposalId);
         }
     }
 
     // reject and delete a pending proposal
-    function deleteProposal(uint256 _proposalId) external onlyMember {
-        require(_isPendingProposal(_proposalId), "NotPendingProposal");
+    function deleteProposal(uint256 proposalId) external onlyMember {
+        require(_isPendingProposal(proposalId), "NotPendingProposal");
 
-        _deletePendingProposalId(_proposalId);
-        proposals[_proposalId].status = Constants.PROPOSAL_STATUS_DELETED;
+        _deletePendingProposalId(proposalId);
+        proposals[proposalId].status = Constants.PROPOSAL_STATUS_DELETED;
 
-        emit Delete(msg.sender, _proposalId);
+        emit Delete(msg.sender, proposalId);
     }
 
     function getPendingProposals() external view returns (Proposal[] memory results) {
@@ -191,8 +191,8 @@ contract ProxyAdminMultisig {
         return array;
     }
 
-    function _executeProposal(uint256 _proposalId) internal {
-        Proposal storage proposal = proposals[_proposalId];
+    function _executeProposal(uint256 proposalId) internal {
+        Proposal storage proposal = proposals[proposalId];
         require(proposal.approvalCount >= threshold, "NotEnoughApproval");
 
         if (
@@ -212,15 +212,15 @@ contract ProxyAdminMultisig {
         }
 
         // update proposal
-        _deletePendingProposalId(_proposalId);
-        proposals[_proposalId].status = Constants.PROPOSAL_STATUS_EXECUTED;
+        _deletePendingProposalId(proposalId);
+        proposals[proposalId].status = Constants.PROPOSAL_STATUS_EXECUTED;
     }
 
-    function _deletePendingProposalId(uint256 _proposalId) internal {
+    function _deletePendingProposalId(uint256 proposalId) internal {
         // find index to be deleted
         uint256 valueIndex = 0;
         for (uint256 i = 0; i < pendingProposalIds.length; i++) {
-            if (_proposalId == pendingProposalIds[i]) {
+            if (proposalId == pendingProposalIds[i]) {
                 // plus 1 because index 0
                 // means a value is not in the array.
                 valueIndex = i + 1;
@@ -240,11 +240,11 @@ contract ProxyAdminMultisig {
         }
     }
 
-    function _hasApproved(address _owner, uint256 _proposalId) internal view returns (bool) {
+    function _hasApproved(address owner, uint256 proposalId) internal view returns (bool) {
         uint256 valueIndex;
-        Proposal memory proposal = proposals[_proposalId];
+        Proposal memory proposal = proposals[proposalId];
         for (uint256 i = 0; i < proposal.approvals.length; i++) {
-            if (_owner == proposal.approvals[i]) {
+            if (owner == proposal.approvals[i]) {
                 // plus 1 because index 0
                 // means a value is not in the array.
                 valueIndex = i + 1;
@@ -254,10 +254,10 @@ contract ProxyAdminMultisig {
         return valueIndex != 0;
     }
 
-    function _isPendingProposal(uint256 _proposalId) internal view returns (bool) {
+    function _isPendingProposal(uint256 proposalId) internal view returns (bool) {
         uint256 valueIndex;
         for (uint256 i = 0; i < pendingProposalIds.length; i++) {
-            if (_proposalId == pendingProposalIds[i]) {
+            if (proposalId == pendingProposalIds[i]) {
                 // plus 1 because index 0
                 // means a value is not in the array.
                 valueIndex = i + 1;

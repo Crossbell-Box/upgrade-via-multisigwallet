@@ -3,12 +3,12 @@ pragma solidity 0.8.10;
 
 import "forge-std/Test.sol";
 import "forge-std/console2.sol";
-import "../../contracts/ProxyAdminMultisig.sol";
-import "../../contracts/TransparentUpgradeableProxy.sol";
-import "../../contracts/mocks/UpgradeV1.sol";
-import "../../contracts/mocks/UpgradeV2.sol";
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "../contracts/ProxyAdminMultisig.sol";
+import "../contracts/mocks/UpgradeV1.sol";
+import "../contracts/mocks/UpgradeV2.sol";
 import "./helpers/utils.sol";
-import "../../contracts/libraries/Constants.sol";
+import "../contracts/libraries/Constants.sol";
 
 interface DumbEmitterEvents {
     // events
@@ -22,7 +22,7 @@ interface DumbEmitterEvents {
     event Propose(
         uint256 indexed proposalId,
         address target,
-        string proposalType, // "ChangeAdmin" or "Upgrade"
+        string proposalType, // Constants.PROPOSAL_TYPE_CHANGE_ADMIN or "Upgrade"
         address data
     );
     event Approval(address indexed owner, uint256 indexed proposalId);
@@ -30,7 +30,7 @@ interface DumbEmitterEvents {
     event Execution(
         uint256 indexed proposalId,
         address target,
-        string proposalType, // "ChangeAdmin" or "Upgrade"
+        string proposalType, // Constants.PROPOSAL_TYPE_CHANGE_ADMIN or "Upgrade"
         address data
     );
     event Upgrade(address target, address implementation);
@@ -104,16 +104,157 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
     }
 
     function testProposeToUpgrade() public {
+        // alice propose to upgrade
+        expectEmit(CheckTopic1 | CheckTopic2 | CheckTopic3 | CheckData);
+        vm.startPrank(alice);
+        emit Propose(1, target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2));
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2));
+
+        // check proposal status
+        _checkPendingProposal(
+            1,
+            target,
+            Constants.PROPOSAL_TYPE_UPGRADE,
+            address(upgradeV2),
+            0,
+            new address[](0),
+            Constants.PROPOSAL_STATUS_PENDING
+        );
+    }
+
+    function testProposeToUpgradeFail() public {
+        // not owner can't propose
+        vm.expectRevert(abi.encodePacked("NotOwner"));
+        vm.prank(daniel);
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2));
+
+        // can'e offer invalid proposal
+        vm.expectRevert("Unexpected proposal type");
+        vm.prank(alice);
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2));
+    }
+
+    function testProposeChangeAdmin() public {
+        // 1. alice propose to change admin in to alice
+        vm.prank(alice);
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, address(alice));
+
+        // check proposal status
+        ProxyAdminMultisig.Proposal[] memory proposalsC1 = proxyAdminMultisig.getPendingProposals();
+        _checkPendingProposal(
+            1,
+            target,
+            Constants.PROPOSAL_TYPE_CHANGE_ADMIN,
+            alice,
+            0,
+            new address[](0),
+            Constants.PROPOSAL_STATUS_PENDING
+        );
+        // check proposal count
+        assertEq(proxyAdminMultisig.getProposalCount(), 1);
+    }
+
+    function testApproveProposal() public {
+        vm.startPrank(alice);
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2));
+        proxyAdminMultisig.approveProposal(1);
+
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, address(alice));
+        proxyAdminMultisig.approveProposal(2);
+    }
+
+    function testApproveProposalFail() public {
+        // not owner can't approve
+        vm.prank(alice);
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2));
+        vm.expectRevert(abi.encodePacked("NotOwner"));
+        vm.prank(daniel);
+        proxyAdminMultisig.approveProposal(1);
+
+        // can't approve twice
+        vm.startPrank(alice);
+        proxyAdminMultisig.approveProposal(1);
+        vm.expectRevert(abi.encodePacked("AlreadyApproved"));
+        proxyAdminMultisig.approveProposal(1);
+        vm.stopPrank();
+
+        // can't approve proposals that don't exist
+        vm.startPrank(alice);
+        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
+        proxyAdminMultisig.approveProposal(0);
+        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
+        proxyAdminMultisig.approveProposal(2);
+        vm.stopPrank();
+
+        // can't approve proposals that's deleted
+        vm.prank(bob);
+        proxyAdminMultisig.approveProposal(1);
+        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
+        vm.startPrank(charlie);
+        proxyAdminMultisig.approveProposal(1);
+    }
+
+    function testDeleteProposal() public {
+        vm.prank(alice);
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, address(alice));
+
+        // check count
+        assertEq(proxyAdminMultisig.getProposalCount(), 1);
+        vm.prank(alice);
+        proxyAdminMultisig.deleteProposal(1);
+
+        // check count after deleting
+        // delete only remove the proposal id from pending list
+        assertEq(proxyAdminMultisig.getProposalCount(), 1);
+
+        // check proposal status
+        _checkAllProposal(
+            1,
+            target,
+            Constants.PROPOSAL_TYPE_CHANGE_ADMIN,
+            alice,
+            0,
+            new address[](0),
+            Constants.PROPOSAL_STATUS_DELETED
+        );
+    }
+
+    function testDeleteProposalFail() public {
+        vm.prank(alice);
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, address(alice));
+        assertEq(proxyAdminMultisig.getProposalCount(), 1);
+
+        vm.prank(daniel);
+        vm.expectRevert(abi.encodePacked("NotOwner"));
+        proxyAdminMultisig.deleteProposal(1);
+        assertEq(proxyAdminMultisig.getProposalCount(), 1);
+
+        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
+        vm.prank(alice);
+        proxyAdminMultisig.deleteProposal(2);
+
+        // can't delete executed proposals
+        vm.prank(alice);
+        proxyAdminMultisig.approveProposal(1);
+        vm.prank(bob);
+        proxyAdminMultisig.approveProposal(1);
+        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
+        vm.prank(alice);
+        proxyAdminMultisig.deleteProposal(1);
+    }
+
+    function testUpgrade() public {
         // check initial implementation address
         vm.prank(address(proxyAdminMultisig));
         address preImplementation = transparentUpgradeableProxy.implementation();
         assertEq(preImplementation, address(upgradeV1));
 
+        // 1. propose
         // alice propose to upgrade
         expectEmit(CheckTopic1 | CheckTopic2 | CheckTopic3 | CheckData);
         vm.startPrank(alice);
-        emit Propose(1, target, "Upgrade", address(upgradeV2));
-        proxyAdminMultisig.propose(target, "Upgrade", address(upgradeV2));
+        emit Propose(1, target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2));
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2));
 
         // check proposal status
         _checkPendingProposal(
@@ -126,6 +267,7 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
             Constants.PROPOSAL_STATUS_PENDING
         );
 
+        // 2. approve
         // alice approve the proposal
         expectEmit(CheckTopic1 | CheckTopic2 | CheckTopic3 | CheckData);
         emit Approval(alice, 1);
@@ -173,22 +315,10 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         assertEq(transparentUpgradeableProxy.implementation(), address(upgradeV2));
     }
 
-    function testProposeToUpgradeFail() public {
-        // not owner can't propose
-        vm.expectRevert(abi.encodePacked("NotOwner"));
-        vm.prank(daniel);
-        proxyAdminMultisig.propose(target, "Upgrade", address(upgradeV2));
-
-        // can'e offer invalid proposal
-        vm.expectRevert("Unexpected proposal type");
-        vm.prank(alice);
-        proxyAdminMultisig.propose(target, "upgrade", address(upgradeV2));
-    }
-
-    function testProposeChangeAdmin() public {
+    function testChangeAdmin() public {
         // 1. alice propose to change admin in to alice
         vm.prank(alice);
-        proxyAdminMultisig.propose(target, "ChangeAdmin", address(alice));
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, address(alice));
 
         // check proposal status
         ProxyAdminMultisig.Proposal[] memory proposalsC1 = proxyAdminMultisig.getPendingProposals();
@@ -242,103 +372,14 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         assertEq(transparentUpgradeableProxy.admin(), alice);
     }
 
-    function testApproveProposal() public {
-        vm.startPrank(alice);
-        proxyAdminMultisig.propose(target, "Upgrade", address(upgradeV2));
-        proxyAdminMultisig.approveProposal(1);
-
-        proxyAdminMultisig.propose(target, "ChangeAdmin", address(alice));
-        proxyAdminMultisig.approveProposal(2);
-    }
-
-    function testApproveProposalFail() public {
-        // not owner can't approve
-        vm.prank(alice);
-        proxyAdminMultisig.propose(target, "Upgrade", address(upgradeV2));
-        vm.expectRevert(abi.encodePacked("NotOwner"));
-        vm.prank(daniel);
-        proxyAdminMultisig.approveProposal(1);
-
-        // can't approve twice
-        vm.startPrank(alice);
-        proxyAdminMultisig.approveProposal(1);
-        vm.expectRevert(abi.encodePacked("AlreadyApproved"));
-        proxyAdminMultisig.approveProposal(1);
-        vm.stopPrank();
-
-        // can't approve proposals that don't exist
-        vm.startPrank(alice);
-        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
-        proxyAdminMultisig.approveProposal(0);
-        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
-        proxyAdminMultisig.approveProposal(2);
-        vm.stopPrank();
-
-        // can't approve proposals that's deleted
-        vm.prank(bob);
-        proxyAdminMultisig.approveProposal(1);
-        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
-        vm.startPrank(charlie);
-        proxyAdminMultisig.approveProposal(1);
-    }
-
-    function testDeleteProposal() public {
-        vm.prank(alice);
-        proxyAdminMultisig.propose(target, "ChangeAdmin", address(alice));
-
-        // check count
-        assertEq(proxyAdminMultisig.getProposalCount(), 1);
-        vm.prank(alice);
-        proxyAdminMultisig.deleteProposal(1);
-
-        // check count after deleting
-        // delete only remove the proposal id from pending list
-        assertEq(proxyAdminMultisig.getProposalCount(), 1);
-
-        // check proposal status
-        _checkAllProposal(
-            1,
-            target,
-            Constants.PROPOSAL_TYPE_CHANGE_ADMIN,
-            alice,
-            0,
-            new address[](0),
-            Constants.PROPOSAL_STATUS_DELETED
-        );
-    }
-
-    function testDeleteProposalFail() public {
-        vm.prank(alice);
-        proxyAdminMultisig.propose(target, "ChangeAdmin", address(alice));
-        assertEq(proxyAdminMultisig.getProposalCount(), 1);
-
-        vm.prank(daniel);
-        vm.expectRevert(abi.encodePacked("NotOwner"));
-        proxyAdminMultisig.deleteProposal(1);
-        assertEq(proxyAdminMultisig.getProposalCount(), 1);
-
-        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
-        vm.prank(alice);
-        proxyAdminMultisig.deleteProposal(2);
-
-        // can't delete executed proposals
-        vm.prank(alice);
-        proxyAdminMultisig.approveProposal(1);
-        vm.prank(bob);
-        proxyAdminMultisig.approveProposal(1);
-        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
-        vm.prank(alice);
-        proxyAdminMultisig.deleteProposal(1);
-    }
-
     function testMultipleProposals() public {
         // alice proposal to upgrade(proposalId=1)
         vm.prank(alice);
-        proxyAdminMultisig.propose(target, "Upgrade", address(upgradeV2));
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2));
 
         // bob propose to change admin(proposalId=2)
         vm.prank(bob);
-        proxyAdminMultisig.propose(target, "ChangeAdmin", address(alice));
+        proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, address(alice));
 
         // alice approve 1 and 2
         vm.startPrank(alice);
@@ -358,6 +399,10 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         assertEq(transparentUpgradeableProxy.admin(), alice);
     }
 
+    function testGetAllProposals() public {}
+
+    function testGetPendingProposals() public {}
+
     function _checkPendingProposal(
         uint256 _proposalId,
         address _target,
@@ -368,6 +413,8 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         string memory _status
     ) internal {
         ProxyAdminMultisig.Proposal[] memory _proposals = proxyAdminMultisig.getPendingProposals();
+        // TODO: search proposal by proposal id
+
         ProxyAdminMultisig.Proposal memory _proposal = _proposals[_proposalId - 1];
         assertEq(_proposal.target, _target);
         assertEq(_proposal.proposalType, _proposalType);
