@@ -412,30 +412,26 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         address[] memory _approvals,
         string memory _status
     ) internal {
-        // TODO add proposal id in Proposal struct
-        // // get pending proposals and all proposals
-        // ProxyAdminMultisig.Proposal[] memory _pendingProposals = proxyAdminMultisig.getPendingProposals();
-        // ProxyAdminMultisig.Proposal[] memory _allProposals = proxyAdminMultisig.getAllProposals();
-        // // get proposal by _proposalId
-        // ProxyAdminMultisig.Proposal memory _proposal = _allProposals[_proposalId-1];
-        // // check if this id is in pending list
-        // bool memory exist = false;
-        // for (uint256 i = 0; i < _pendingProposals.length; i++){
-        //     ProxyAdminMultisig.Proposal _thisProposal = _pendingProposals[i];
-        //     uint256 _thisId = i + 1;
-        //     if (_thisId == _proposalId) {
-        //         exist = true;
-        //     }
-        // }
-        // assert(exist);
-        // // TODO: search proposal by proposal id
-        // ProxyAdminMultisig.Proposal _proposal = _proposals[_proposalId - 1];
-        // assertEq(_proposal.target, _target);
-        // assertEq(_proposal.proposalType, _proposalType);
-        // assertEq(_proposal.data, _data);
-        // assertEq(_proposal.approvalCount, _approvalCount);
-        // assertEq(_proposal.approvals, _approvals);
-        // assertEq(_proposal.status, _status);
+        // get pending proposals and all proposals
+        ProxyAdminMultisig.Proposal[] memory _pendingProposals = proxyAdminMultisig.getPendingProposals();
+        ProxyAdminMultisig.Proposal[] memory _allProposals = proxyAdminMultisig.getAllProposals(_proposalId-1, 1);
+        // get proposal by _proposalId
+        ProxyAdminMultisig.Proposal memory _proposal = _allProposals[_proposalId-1];
+        // check if this id is in pending list
+        bool exist = false;
+        for (uint256 i = 0; i < _pendingProposals.length; i++){
+            ProxyAdminMultisig.Proposal memory _thisProposal = _pendingProposals[i];
+            if (_thisProposal.proposalId == _proposalId) {
+                exist = true;
+            }
+        }
+        assert(exist);
+        assertEq(_proposal.target, _target);
+        assertEq(_proposal.proposalType, _proposalType);
+        assertEq(_proposal.data, _data);
+        assertEq(_proposal.approvalCount, _approvalCount);
+        assertEq(_proposal.approvals, _approvals);
+        assertEq(_proposal.status, _status);
     }
 
     function _checkAllProposal(

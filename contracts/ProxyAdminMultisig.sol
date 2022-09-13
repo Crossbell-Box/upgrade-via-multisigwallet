@@ -47,6 +47,7 @@ contract ProxyAdminMultisig {
     uint256 internal threshold;
 
     struct Proposal {
+        uint256 proposalId;
         address target;
         string proposalType; // "ChangeAdmin" or "Upgrade"
         address data;
@@ -95,6 +96,7 @@ contract ProxyAdminMultisig {
         proposalCount++;
         uint256 proposalId = proposalCount;
         // create proposal
+        proposals[proposalId].proposalId = proposalId;
         proposals[proposalId].target = target;
         proposals[proposalId].proposalType = proposalType;
         proposals[proposalId].data = data;
