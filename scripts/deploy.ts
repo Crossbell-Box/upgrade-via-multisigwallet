@@ -4,7 +4,7 @@ async function main() {
     const [owner] = await ethers.getSigners();
 
     // update owners and threshold when deploying
-    const owners = [0xa6f969045641Cf486a747A2688F3a5A6d43cd0D8, 0xa6f969045641Cf486a747A2688F3a5A6d43cd0D7,0xa6f969045641Cf486a747A2688F3a5A6d43cd0D9];
+    const owners = ["0x3B6D02A24Df681FFdf621D35D70ABa7adaAc07c1", "0xE01c8D2Abc0f6680cB3eaBD8a77A616Bc5e085f7","0xda2423ceA4f1047556e7a142F81a7ED50e93e160"];
     const threshold = 2;
 
     const ProxyAdminMultisig = await ethers.getContractFactory("ProxyAdminMultisig");
