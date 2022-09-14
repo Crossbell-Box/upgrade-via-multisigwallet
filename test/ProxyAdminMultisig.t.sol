@@ -11,6 +11,16 @@ import "./helpers/utils.sol";
 import "../contracts/libraries/Constants.sol";
 
 interface DumbEmitterEvents {
+    error NotOwner();
+    error ThresholdIsZero();
+    error ThresholdExceedsOwnersCount(uint256 threshold, uint256 ownersCount);
+    error InvalidOwner();
+    error OwnerExists();
+    error UnexpectedProposalType();
+    error NotPendingProposal();
+    error AlreadyApproved();
+    error NotEnoughApproval();
+
     // events
     event Setup(
         address indexed initiator,
@@ -82,24 +92,26 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
 
     function testConstructFail() public {
         // Threshold can't be 0
-        vm.expectRevert(abi.encodePacked("ThresholdIsZero"));
+        vm.expectRevert(DumbEmitterEvents.ThresholdIsZero.selector);
         proxyAdminMultisig = new ProxyAdminMultisig(ownersArr3, 0);
 
         // Threshold can't Exceed OwnersCount
-        vm.expectRevert(abi.encodePacked("ThresholdExceedsOwnersCount"));
+        vm.expectRevert(
+            abi.encodeWithSelector(DumbEmitterEvents.ThresholdExceedsOwnersCount.selector, 4, 3)
+        );
         proxyAdminMultisig = new ProxyAdminMultisig(ownersArr3, 4);
 
         // [alice, bob, alice] and [alice, alice, bob]
         // replicated owners
-        vm.expectRevert(abi.encodePacked("InvalidOwner"));
+        vm.expectRevert(DumbEmitterEvents.InvalidOwner.selector);
         proxyAdminMultisig = new ProxyAdminMultisig(replicatedOwners, 1);
 
         // owner can't be 0x0 or 0x1
-        vm.expectRevert(abi.encodePacked("InvalidOwner"));
+        vm.expectRevert(DumbEmitterEvents.InvalidOwner.selector);
         proxyAdminMultisig = new ProxyAdminMultisig(zeroOwners, 1);
-        vm.expectRevert(abi.encodePacked("InvalidOwner"));
+        vm.expectRevert(DumbEmitterEvents.InvalidOwner.selector);
         proxyAdminMultisig = new ProxyAdminMultisig(sentinelOwners, 1);
-        vm.expectRevert(abi.encodePacked("OwnerExists"));
+        vm.expectRevert(DumbEmitterEvents.OwnerExists.selector);
         proxyAdminMultisig = new ProxyAdminMultisig(existsOwners, 1);
     }
 
@@ -124,12 +136,12 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
 
     function testProposeToUpgradeFail() public {
         // not owner can't propose
-        vm.expectRevert(abi.encodePacked("NotOwner"));
+        vm.expectRevert(DumbEmitterEvents.NotOwner.selector);
         vm.prank(daniel);
         proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2));
 
         // can'e offer invalid proposal
-        vm.expectRevert("Unexpected proposal type");
+        vm.expectRevert(DumbEmitterEvents.UnexpectedProposalType.selector);
         vm.prank(alice);
         proxyAdminMultisig.propose(target, "upgrade", address(upgradeV2));
     }
@@ -166,29 +178,29 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         // not owner can't approve
         vm.prank(alice);
         proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_UPGRADE, address(upgradeV2));
-        vm.expectRevert(abi.encodePacked("NotOwner"));
+        vm.expectRevert(DumbEmitterEvents.NotOwner.selector);
         vm.prank(daniel);
         proxyAdminMultisig.approveProposal(1);
 
         // can't approve twice
         vm.startPrank(alice);
         proxyAdminMultisig.approveProposal(1);
-        vm.expectRevert(abi.encodePacked("AlreadyApproved"));
+        vm.expectRevert(DumbEmitterEvents.AlreadyApproved.selector);
         proxyAdminMultisig.approveProposal(1);
         vm.stopPrank();
 
         // can't approve proposals that don't exist
         vm.startPrank(alice);
-        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
+        vm.expectRevert(DumbEmitterEvents.NotPendingProposal.selector);
         proxyAdminMultisig.approveProposal(0);
-        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
+        vm.expectRevert(DumbEmitterEvents.NotPendingProposal.selector);
         proxyAdminMultisig.approveProposal(2);
         vm.stopPrank();
 
         // can't approve proposals that's deleted
         vm.prank(bob);
         proxyAdminMultisig.approveProposal(1);
-        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
+        vm.expectRevert(DumbEmitterEvents.NotPendingProposal.selector);
         vm.startPrank(charlie);
         proxyAdminMultisig.approveProposal(1);
     }
@@ -224,11 +236,11 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         assertEq(proxyAdminMultisig.getProposalCount(), 1);
 
         vm.prank(daniel);
-        vm.expectRevert(abi.encodePacked("NotOwner"));
+        vm.expectRevert(DumbEmitterEvents.NotOwner.selector);
         proxyAdminMultisig.deleteProposal(1);
         assertEq(proxyAdminMultisig.getProposalCount(), 1);
 
-        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
+        vm.expectRevert(DumbEmitterEvents.NotPendingProposal.selector);
         vm.prank(alice);
         proxyAdminMultisig.deleteProposal(2);
 
@@ -237,7 +249,7 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         proxyAdminMultisig.approveProposal(1);
         vm.prank(bob);
         proxyAdminMultisig.approveProposal(1);
-        vm.expectRevert(abi.encodePacked("NotPendingProposal"));
+        vm.expectRevert(DumbEmitterEvents.NotPendingProposal.selector);
         vm.prank(alice);
         proxyAdminMultisig.deleteProposal(1);
     }
@@ -403,7 +415,10 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         vm.prank(bob);
         proxyAdminMultisig.propose(target, Constants.PROPOSAL_TYPE_CHANGE_ADMIN, address(bob));
 
-        ProxyAdminMultisig.Proposal[] memory  _proposals = proxyAdminMultisig.getAllProposals(0, 100);
+        ProxyAdminMultisig.Proposal[] memory _proposals = proxyAdminMultisig.getAllProposals(
+            0,
+            100
+        );
         assertEq(_proposals.length, 2);
         assertEq(proxyAdminMultisig.getAllProposals(0, 2).length, 2);
         assertEq(proxyAdminMultisig.getAllProposals(1, 1).length, 1);
@@ -413,16 +428,16 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         proxyAdminMultisig.approveProposal(1);
         vm.prank(bob);
         proxyAdminMultisig.approveProposal(1);
-        assertEq(proxyAdminMultisig.getAllProposals(0,100).length, 2);
+        assertEq(proxyAdminMultisig.getAllProposals(0, 100).length, 2);
 
         vm.prank(alice);
         proxyAdminMultisig.deleteProposal(2);
-        assertEq(proxyAdminMultisig.getAllProposals(0,100).length, 2);
+        assertEq(proxyAdminMultisig.getAllProposals(0, 100).length, 2);
     }
 
     function testGetAllProposalsFail() public {
         // offset >= proposalCount returns nothing
-        ProxyAdminMultisig.Proposal[] memory  _proposals = proxyAdminMultisig.getAllProposals(2, 2);
+        ProxyAdminMultisig.Proposal[] memory _proposals = proxyAdminMultisig.getAllProposals(2, 2);
         assertEq(_proposals.length, 0);
     }
 
@@ -456,13 +471,17 @@ contract MultisigTest is DumbEmitterEvents, Test, Utils {
         string memory _status
     ) internal {
         // get pending proposals and all proposals
-        ProxyAdminMultisig.Proposal[] memory _pendingProposals = proxyAdminMultisig.getPendingProposals();
-        ProxyAdminMultisig.Proposal[] memory _allProposals = proxyAdminMultisig.getAllProposals(_proposalId-1, 1);
+        ProxyAdminMultisig.Proposal[] memory _pendingProposals = proxyAdminMultisig
+            .getPendingProposals();
+        ProxyAdminMultisig.Proposal[] memory _allProposals = proxyAdminMultisig.getAllProposals(
+            _proposalId - 1,
+            1
+        );
         // get proposal by _proposalId
-        ProxyAdminMultisig.Proposal memory _proposal = _allProposals[_proposalId-1];
+        ProxyAdminMultisig.Proposal memory _proposal = _allProposals[_proposalId - 1];
         // check if this id is in pending list
         bool exist = false;
-        for (uint256 i = 0; i < _pendingProposals.length; i++){
+        for (uint256 i = 0; i < _pendingProposals.length; i++) {
             ProxyAdminMultisig.Proposal memory _thisProposal = _pendingProposals[i];
             if (_thisProposal.proposalId == _proposalId) {
                 exist = true;

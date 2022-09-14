@@ -11,6 +11,16 @@ interface ITransparentUpgradeableProxy {
     function upgradeTo(address newImplementation) external;
 }
 
+error NotOwner();
+error ThresholdIsZero();
+error ThresholdExceedsOwnersCount(uint256 threshold, uint256 ownersCount);
+error InvalidOwner();
+error OwnerExists();
+error UnexpectedProposalType();
+error NotPendingProposal();
+error AlreadyApproved();
+error NotEnoughApproval();
+
 contract ProxyAdminMultisig {
     // events
     event Setup(
@@ -38,7 +48,9 @@ contract ProxyAdminMultisig {
     event ChangeAdmin(address target, address newAdmin);
 
     modifier onlyMember() {
-        require(owners[msg.sender] != address(0), "NotOwner");
+        if (owners[msg.sender] == address(0)) {
+            revert NotOwner();
+        }
         _;
     }
 
@@ -60,18 +72,23 @@ contract ProxyAdminMultisig {
     uint256[] internal pendingProposalIds;
 
     constructor(address[] memory _owners, uint256 _threshold) {
-        require(_threshold > 0, "ThresholdIsZero");
-        require(_threshold <= _owners.length, "ThresholdExceedsOwnersCount");
+        if (_threshold == 0) {
+            revert ThresholdIsZero();
+        }
+        if (_threshold > _owners.length) {
+            revert ThresholdExceedsOwnersCount(_threshold, _owners.length);
+        }
 
         // initialize owners
         address currentOwner = Constants.SENTINEL_OWNER;
         for (uint256 i = 0; i < _owners.length; i++) {
             address owner = _owners[i];
-            require(
-                owner != address(0) && owner != Constants.SENTINEL_OWNER && currentOwner != owner,
-                "InvalidOwner"
-            );
-            require(owners[owner] == address(0), "OwnerExists");
+            if (owner == address(0) || owner == Constants.SENTINEL_OWNER || currentOwner == owner) {
+                revert InvalidOwner();
+            }
+            if (owners[owner] != address(0)) {
+                revert OwnerExists();
+            }
             owners[currentOwner] = owner;
             currentOwner = owner;
         }
@@ -87,12 +104,13 @@ contract ProxyAdminMultisig {
         string calldata proposalType,
         address data
     ) external onlyMember {
-        require(
-            keccak256(bytes(proposalType)) ==
-                keccak256(bytes(Constants.PROPOSAL_TYPE_CHANGE_ADMIN)) ||
-                keccak256(bytes(proposalType)) == keccak256(bytes(Constants.PROPOSAL_TYPE_UPGRADE)),
-            "Unexpected proposal type"
-        );
+        if (
+            keccak256(bytes(proposalType)) !=
+            keccak256(bytes(Constants.PROPOSAL_TYPE_CHANGE_ADMIN)) &&
+            keccak256(bytes(proposalType)) != keccak256(bytes(Constants.PROPOSAL_TYPE_UPGRADE))
+        ) {
+            revert UnexpectedProposalType();
+        }
         proposalCount++;
         uint256 proposalId = proposalCount;
         // create proposal
@@ -108,8 +126,12 @@ contract ProxyAdminMultisig {
     }
 
     function approveProposal(uint256 proposalId) external onlyMember {
-        require(_isPendingProposal(proposalId), "NotPendingProposal");
-        require(!_hasApproved(msg.sender, proposalId), "AlreadyApproved");
+        if (!_isPendingProposal(proposalId)) {
+            revert NotPendingProposal();
+        }
+        if (_hasApproved(msg.sender, proposalId)) {
+            revert AlreadyApproved();
+        }
 
         // approve proposal
         proposals[proposalId].approvalCount++;
@@ -124,7 +146,9 @@ contract ProxyAdminMultisig {
 
     // reject and delete a pending proposal
     function deleteProposal(uint256 proposalId) external onlyMember {
-        require(_isPendingProposal(proposalId), "NotPendingProposal");
+        if (!_isPendingProposal(proposalId)) {
+            revert NotPendingProposal();
+        }
 
         _deletePendingProposalId(proposalId);
         proposals[proposalId].status = Constants.PROPOSAL_STATUS_DELETED;
@@ -195,7 +219,9 @@ contract ProxyAdminMultisig {
 
     function _executeProposal(uint256 proposalId) internal {
         Proposal storage proposal = proposals[proposalId];
-        require(proposal.approvalCount >= threshold, "NotEnoughApproval");
+        if (proposal.approvalCount < threshold) {
+            revert NotEnoughApproval();
+        }
 
         if (
             keccak256(bytes(proposal.proposalType)) ==
