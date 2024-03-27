@@ -1,14 +1,16 @@
 {
     "tabWidth": 4,
     "useTabs": false,
-    "printWidth": 100,
+    "printWidth": 120,
     "overrides": [
         {
             "files": "*.sol",
             "options": {
                 "semi": true,
-                "printWidth": 100,
-                "tabWidth": 4
+                "singleQuote": false,
+                "printWidth": 120,
+                "tabWidth": 4,
+                "compiler": "0.8.20"
             }
         }
     ]
