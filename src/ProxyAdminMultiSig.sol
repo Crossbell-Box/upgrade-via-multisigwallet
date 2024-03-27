@@ -109,9 +109,27 @@ contract ProxyAdminMultiSig is IErrors {
 
     /// @dev execute a proposal
     function executeProposal(uint256 proposalId) external onlyOwner {
-        if (_proposals[proposalId].approvalCount >= _threshold) {
-            _executeProposal(proposalId);
+        Proposal storage p = _proposals[proposalId];
+        if (p.approvalCount < _threshold) {
+            revert NotEnoughApproval();
         }
+
+        if (_equal(p.proposalType, Const.CHANGE_ADMIN)) {
+            IProxy(p.proxy).changeAdmin(p.newAdminOrImplementation);
+            emit Events.AdminChanged(p.proxy, p.newAdminOrImplementation);
+        } else if (_equal(p.proposalType, Const.TYPE_UPGRADE)) {
+            IProxy(p.proxy).upgradeTo(p.newAdminOrImplementation);
+            emit Events.Upgraded(p.proxy, p.newAdminOrImplementation, "");
+        } else if (_equal(p.proposalType, Const.TYPE_UPGRADE_AND_CALL)) {
+            IProxy(p.proxy).upgradeToAndCall(p.newAdminOrImplementation, p.data);
+            emit Events.Upgraded(p.proxy, p.newAdminOrImplementation, p.data);
+        } else {
+            revert("Unexpected proposal type");
+        }
+
+        // update proposal
+        _deletePendingProposalId(proposalId);
+        _proposals[proposalId].status = Const.STATUS_EXECUTED;
     }
 
     /// @dev reject and delete a pending proposal
@@ -163,30 +181,6 @@ contract ProxyAdminMultiSig is IErrors {
 
     function isOwner(address owner) external view returns (bool) {
         return owner != Const.SENTINEL_OWNER && _owners[owner] != address(0);
-    }
-
-    function _executeProposal(uint256 proposalId) internal {
-        Proposal storage p = _proposals[proposalId];
-        if (p.approvalCount < _threshold) {
-            revert NotEnoughApproval();
-        }
-
-        if (_equal(p.proposalType, Const.CHANGE_ADMIN)) {
-            IProxy(p.proxy).changeAdmin(p.newAdminOrImplementation);
-            emit Events.AdminChanged(p.proxy, p.newAdminOrImplementation);
-        } else if (_equal(p.proposalType, Const.TYPE_UPGRADE)) {
-            IProxy(p.proxy).upgradeTo(p.newAdminOrImplementation);
-            emit Events.Upgraded(p.proxy, p.newAdminOrImplementation, "");
-        } else if (_equal(p.proposalType, Const.TYPE_UPGRADE_AND_CALL)) {
-            IProxy(p.proxy).upgradeToAndCall(p.newAdminOrImplementation, p.data);
-            emit Events.Upgraded(p.proxy, p.newAdminOrImplementation, p.data);
-        } else {
-            revert("Unexpected proposal type");
-        }
-
-        // update proposal
-        _deletePendingProposalId(proposalId);
-        _proposals[proposalId].status = Const.STATUS_EXECUTED;
     }
 
     function _deletePendingProposalId(uint256 proposalId) internal {

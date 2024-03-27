@@ -15,29 +15,36 @@ Currently, this multisig contract has 2 functionalities: `upgrade` and `change a
 
 Specifically, the information generated from **social activities** will be the initial form of data-ownership by users on Crossbell.
 
-## ⚙ Development
+## Usage
+
+### Build
 
 ```shell
-yarn
-yarn test
+npm i
+forge install
+forge build
 ```
-Install forge if you don't have one:
+
+### Test
+
 ```shell
-# install foge
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
+forge test
 ```
-Compile and run test:
+
+
+### Deploy
+
 ```shell
-make
-# or
-make test
-# or run sigle test function using --match-test
-forge test --match-test testXXX  -vvvvv
-```
-Deploy:
-```shell
-chmod +x  ./scripts/deploy_XXX.sh 
-deploy_XXX.sh
+forge script script/Deploy.s.sol:Deploy \
+--chain-id $CHAIN_ID \
+--rpc-url $RPC_URL \
+--private-key $PRIVATE_KEY \
+--verifier-url $VERIFIER_URL \
+--verifier $VERIFIER \
+--verify \
+--broadcast --ffi -vvvv 
+
+# generate easily readable abi to /deployments
+forge script script/Deploy.s.sol:Deploy --sig 'sync()' --rpc-url $RPC_URL --broadcast --ffi
 ```
 

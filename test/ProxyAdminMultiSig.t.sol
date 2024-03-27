@@ -502,6 +502,14 @@ contract MultiSigTest is IErrors, Test, Utils {
         // case 1: not owners
         vm.expectRevert(NotOwner.selector);
         multiSig.executeProposal(proposalId);
+
+        // case 2: not enough approval
+        vm.prank(alice);
+        multiSig.approveProposal(proposalId);
+
+        vm.expectRevert(NotEnoughApproval.selector);
+        vm.prank(bob);
+        multiSig.executeProposal(proposalId);
     }
 
     function testGetAllProposals() public {
@@ -537,7 +545,7 @@ contract MultiSigTest is IErrors, Test, Utils {
         assertEq(multiSig.getAllProposals(0, 100).length, 3);
     }
 
-    function testGetAllProposalsFail() public {
+    function testGetAllProposalsFail() public view {
         // offset >= proposalCount returns nothing
         ProxyAdminMultiSig.Proposal[] memory proposals = multiSig.getAllProposals(2, 2);
         assertEq(proposals.length, 0);
@@ -575,7 +583,7 @@ contract MultiSigTest is IErrors, Test, Utils {
         uint256 approvalCount,
         address[] memory approvals,
         string memory status
-    ) internal {
+    ) internal view {
         // get pending proposals and all proposals
         ProxyAdminMultiSig.Proposal[] memory pendingProposals = multiSig.getPendingProposals();
         ProxyAdminMultiSig.Proposal[] memory allProposals = multiSig.getAllProposals(proposalId - 1, 1);
@@ -608,7 +616,7 @@ contract MultiSigTest is IErrors, Test, Utils {
         uint256 approvalCount,
         address[] memory approvals,
         string memory status
-    ) internal {
+    ) internal view {
         ProxyAdminMultiSig.Proposal[] memory proposals = multiSig.getAllProposals(proposalId - 1, 1);
         ProxyAdminMultiSig.Proposal memory p = proposals[0];
         assertEq(p.proxy, proxy_);
@@ -620,20 +628,20 @@ contract MultiSigTest is IErrors, Test, Utils {
         assertEq(p.status, status);
     }
 
-    function _checkWalletDetail(uint256 threshold_, uint256 ownersCount_, address[] memory owners_) internal {
+    function _checkWalletDetail(uint256 threshold_, uint256 ownersCount_, address[] memory owners_) internal view {
         (uint256 threshold, uint256 ownersCount, address[] memory owners) = multiSig.getWalletDetail();
         assertEq(threshold, threshold_);
         assertEq(ownersCount, ownersCount_);
         assertEq(owners, owners_);
     }
 
-    function _getImplementation(address proxy_) internal returns (address) {
+    function _getImplementation(address proxy_) internal view returns (address) {
         bytes32 implementationSlot = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
         bytes32 impl = vm.load(proxy_, implementationSlot);
         return address(uint160(uint256(impl)));
     }
 
-    function _getAdmin(address proxy_) internal returns (address) {
+    function _getAdmin(address proxy_) internal view returns (address) {
         bytes32 adminSlot = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
         bytes32 admin = vm.load(proxy_, adminSlot);
         return address(uint160(uint256(admin)));
