@@ -5,6 +5,8 @@
 <h1  align='center'>Upgrade via Multisig Contract</h1>
 
 
+[![codecov](https://codecov.io/gh/Crossbell-Box/upgrade-via-multisigwallet/graph/badge.svg?token=4EE9DYI3XI)](https://codecov.io/gh/Crossbell-Box/upgrade-via-multisigwallet)
+
 ## Introduction
 
 This repository is an implementation of a multisig contract that can be applied in general scenarios. 
