@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// solhint-disable private-vars-leading-underscore,no-console
+// solhint-disable private-vars-leading-underscore,no-console,comprehensive-interface,ordering
 pragma solidity 0.8.20;
 
 import {Script} from "forge-std/Script.sol";
