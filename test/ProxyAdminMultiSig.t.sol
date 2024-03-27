@@ -81,19 +81,12 @@ contract MultiSigTest is IErrors, Test, Utils {
         vm.expectRevert(abi.encodeWithSelector(ThresholdExceedsOwnersCount.selector, 4, 3));
         multiSig = new ProxyAdminMultiSig(ownersArr3, 4);
 
-        // [alice, bob, alice] and [alice, alice, bob]
-        // replicated owners
-        vm.expectRevert(InvalidOwner.selector);
-        multiSig = new ProxyAdminMultiSig(replicatedOwners, 1);
-
-        // owner can't be 0x0 or 0x1
-        vm.expectRevert(InvalidOwner.selector);
+        // owner can't be 0x0
+        vm.expectRevert(ZeroAddress.selector);
         multiSig = new ProxyAdminMultiSig(zeroOwners, 1);
 
-        vm.expectRevert(InvalidOwner.selector);
-        multiSig = new ProxyAdminMultiSig(sentinelOwners, 1);
-
-        vm.expectRevert(OwnerExists.selector);
+        // duplicate owner
+        vm.expectRevert(abi.encodeWithSelector(DuplicatedOwner.selector, alice));
         multiSig = new ProxyAdminMultiSig(existsOwners, 1);
     }
 

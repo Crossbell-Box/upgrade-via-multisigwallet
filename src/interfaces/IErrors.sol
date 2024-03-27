@@ -5,7 +5,8 @@ interface IErrors {
     error NotOwner();
     error ThresholdIsZero();
     error ThresholdExceedsOwnersCount(uint256 threshold, uint256 ownersCount);
-    error InvalidOwner();
+    error DuplicatedOwner(address owner);
+    error ZeroAddress();
     error OwnerExists();
     error UnexpectedProposalType();
     error NotPendingProposal();
