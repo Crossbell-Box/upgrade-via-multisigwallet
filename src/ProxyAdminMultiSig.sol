@@ -19,6 +19,8 @@ contract ProxyAdminMultiSig is IErrors {
         string status;
     }
 
+    uint256 internal constant MAX_UINT256 = type(uint256).max;
+
     // multi-sig wallet
     mapping(address => address) internal _owners;
     uint256 internal _ownersCount;
@@ -188,24 +190,24 @@ contract ProxyAdminMultiSig is IErrors {
 
     function _deletePendingProposalId(uint256 proposalId) internal {
         // find index to be deleted
-        uint256 valueIndex = 0;
+        uint256 index = MAX_UINT256;
         for (uint256 i = 0; i < _pendingProposalIds.length; i++) {
             if (proposalId == _pendingProposalIds[i]) {
                 // plus 1 because index 0
                 // means a value is not in the array.
-                valueIndex = i + 1;
+                index = i;
                 break;
             }
         }
 
-        if (valueIndex != 0) {
-            uint256 toDeleteIndex = valueIndex - 1;
+        // if index not equal to MAX_UINT256, it means the proposalId is found
+        if (index != MAX_UINT256) {
             uint256 lastIndex = _pendingProposalIds.length - 1;
-            if (lastIndex != toDeleteIndex) {
-                _pendingProposalIds[toDeleteIndex] = _pendingProposalIds[lastIndex];
+            if (lastIndex != index) {
+                _pendingProposalIds[index] = _pendingProposalIds[lastIndex];
             }
 
-            // delete the slot
+            // delete the last slot
             _pendingProposalIds.pop();
         }
     }
@@ -224,31 +226,30 @@ contract ProxyAdminMultiSig is IErrors {
     }
 
     function _hasApproved(address owner, uint256 proposalId) internal view returns (bool) {
-        uint256 valueIndex;
+        uint256 index = MAX_UINT256;
         Proposal memory proposal = _proposals[proposalId];
         for (uint256 i = 0; i < proposal.approvals.length; i++) {
             if (owner == proposal.approvals[i]) {
-                // plus 1 because index 0
-                // means a value is not in the array.
-                valueIndex = i + 1;
+                index = i;
                 break;
             }
         }
-        return valueIndex != 0;
+        // if index not equal to MAX_UINT256, it means the owner has approved the proposal
+        return index != MAX_UINT256;
     }
 
     function _isPendingProposal(uint256 proposalId) internal view returns (bool) {
-        uint256 valueIndex;
+        uint256 index = MAX_UINT256;
         for (uint256 i = 0; i < _pendingProposalIds.length; i++) {
             if (proposalId == _pendingProposalIds[i]) {
                 // plus 1 because index 0
                 // means a value is not in the array.
-                valueIndex = i + 1;
+                index = i + 1;
                 break;
             }
         }
 
-        return valueIndex != 0;
+        return index != MAX_UINT256;
     }
 
     /**
