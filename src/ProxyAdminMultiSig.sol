@@ -112,6 +112,10 @@ contract ProxyAdminMultiSig is IErrors {
 
     /// @dev executes a proposal
     function executeProposal(uint256 proposalId) external onlyOwner {
+        if (!_isPendingProposal(proposalId)) {
+            revert NotPendingProposal();
+        }
+
         Proposal storage p = _proposals[proposalId];
         if (p.approvalCount < _threshold) {
             revert NotEnoughApproval();

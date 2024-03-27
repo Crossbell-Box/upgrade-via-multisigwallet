@@ -514,12 +514,24 @@ contract MultiSigTest is IErrors, Test, Utils {
         vm.expectRevert(NotOwner.selector);
         multiSig.executeProposal(proposalId);
 
-        // case 2: not enough approval
+        // case 2: proposal not exist
+        vm.expectRevert(NotPendingProposal.selector);
+        vm.prank(alice);
+        multiSig.executeProposal(200);
+
+        // case 3: not enough approval
         vm.prank(alice);
         multiSig.approveProposal(proposalId);
 
         vm.expectRevert(NotEnoughApproval.selector);
         vm.prank(bob);
+        multiSig.executeProposal(proposalId);
+
+        // case 4: can't execute deleted proposal
+        vm.prank(bob);
+        multiSig.deleteProposal(proposalId);
+        vm.expectRevert(NotPendingProposal.selector);
+        vm.prank(charlie);
         multiSig.executeProposal(proposalId);
     }
 
