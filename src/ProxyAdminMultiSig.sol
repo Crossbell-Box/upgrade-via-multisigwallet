@@ -193,8 +193,6 @@ contract ProxyAdminMultiSig is IErrors {
         uint256 index = MAX_UINT256;
         for (uint256 i = 0; i < _pendingProposalIds.length; i++) {
             if (proposalId == _pendingProposalIds[i]) {
-                // plus 1 because index 0
-                // means a value is not in the array.
                 index = i;
                 break;
             }
