@@ -67,7 +67,7 @@ contract ProxyAdminMultiSig is IErrors {
         emit Events.Setup(msg.sender, owners, _ownersCount, threshold);
     }
 
-    /// @dev propose a new admin or implementation for a proxy
+    /// @dev proposes a new admin or implementation for a proxy
     function propose(
         address proxy,
         string calldata proposalType,
@@ -94,7 +94,7 @@ contract ProxyAdminMultiSig is IErrors {
         emit Events.Proposed(proposalId, proxy, proposalType, newAdminOrImplementation, data);
     }
 
-    /// @dev approve a pending proposal
+    /// @dev approves a pending proposal
     function approveProposal(uint256 proposalId) external onlyOwner {
         if (!_isPendingProposal(proposalId)) {
             revert NotPendingProposal();
@@ -110,7 +110,7 @@ contract ProxyAdminMultiSig is IErrors {
         emit Events.Approved(msg.sender, proposalId);
     }
 
-    /// @dev execute a proposal
+    /// @dev executes a proposal
     function executeProposal(uint256 proposalId) external onlyOwner {
         Proposal storage p = _proposals[proposalId];
         if (p.approvalCount < _threshold) {
@@ -135,7 +135,7 @@ contract ProxyAdminMultiSig is IErrors {
         _proposals[proposalId].status = Const.STATUS_EXECUTED;
     }
 
-    /// @dev reject and delete a pending proposal
+    /// @dev rejects and delete a pending proposal
     function deleteProposal(uint256 proposalId) external onlyOwner {
         if (!_isPendingProposal(proposalId)) {
             revert NotPendingProposal();
@@ -147,7 +147,7 @@ contract ProxyAdminMultiSig is IErrors {
         emit Events.Deleted(msg.sender, proposalId);
     }
 
-    /// @dev get pending proposals
+    /// @dev returns pending proposals
     function getPendingProposals() external view returns (Proposal[] memory results) {
         uint256 len = _pendingProposalIds.length;
 
@@ -158,7 +158,7 @@ contract ProxyAdminMultiSig is IErrors {
         }
     }
 
-    /// @dev get all proposals
+    /// @dev returns all proposals
     function getAllProposals(uint256 offset, uint256 limit) external view returns (Proposal[] memory results) {
         if (offset >= _proposalCount) return results;
 
@@ -171,7 +171,7 @@ contract ProxyAdminMultiSig is IErrors {
         }
     }
 
-    /// @dev get wallet detail
+    /// @dev returns wallet detail
     function getWalletDetail() external view returns (uint256 threshold, uint256 ownersCount, address[] memory owners) {
         threshold = _threshold;
         ownersCount = _ownersCount;
@@ -183,12 +183,12 @@ contract ProxyAdminMultiSig is IErrors {
         return _proposalCount;
     }
 
-    /// @dev check if an address is an owner
+    /// @dev checks if an address is an owner
     function isOwner(address owner) external view returns (bool) {
         return owner != Const.SENTINEL_OWNER && _owners[owner] != address(0);
     }
 
-    /// @dev delete a pending proposal by proposalId
+    /// @dev deletes a pending proposal by proposalId
     function _deletePendingProposalId(uint256 proposalId) internal {
         // find index to be deleted
         uint256 index = _getPendingProposalIndex(proposalId);
@@ -205,7 +205,7 @@ contract ProxyAdminMultiSig is IErrors {
         }
     }
 
-    /// @dev get all owners
+    /// @dev returns all owners
     function _getOwners() internal view returns (address[] memory) {
         address[] memory array = new address[](_ownersCount);
 
@@ -219,7 +219,7 @@ contract ProxyAdminMultiSig is IErrors {
         return array;
     }
 
-    /// @dev check if an owner has approved a proposal
+    /// @dev checks if an owner has approved a proposal
     function _hasApproved(address owner, uint256 proposalId) internal view returns (bool) {
         uint256 index = MAX_UINT256;
         address[] memory approvals = _proposals[proposalId].approvals;
@@ -233,13 +233,13 @@ contract ProxyAdminMultiSig is IErrors {
         return index != MAX_UINT256;
     }
 
-    /// @dev check if a proposal is pending
+    /// @dev checks if a proposal is pending
     function _isPendingProposal(uint256 proposalId) internal view returns (bool) {
         uint256 index = _getPendingProposalIndex(proposalId);
         return index != MAX_UINT256;
     }
 
-    /// @dev get the index of a pending proposal, return MAX_UINT256 if not found,
+    /// @dev gets the index of a pending proposal, return MAX_UINT256 if not found,
     function _getPendingProposalIndex(uint256 proposalId) internal view returns (uint256 index) {
         index = MAX_UINT256;
         for (uint256 i = 0; i < _pendingProposalIds.length; i++) {
@@ -250,12 +250,12 @@ contract ProxyAdminMultiSig is IErrors {
         }
     }
 
-    /// @dev Returns the smallest of two numbers.
+    /// @dev returns the smallest of two numbers.
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a < b ? a : b;
     }
 
-    /// @devReturns true if the two strings are equal.
+    /// @dev returns true if the two strings are equal.
     function _equal(string memory a, string memory b) internal pure returns (bool) {
         return bytes(a).length == bytes(b).length && keccak256(bytes(a)) == keccak256(bytes(b));
     }
