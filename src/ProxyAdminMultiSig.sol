@@ -36,6 +36,7 @@ contract ProxyAdminMultiSig is IErrors {
         _;
     }
 
+    /// @dev constructor
     constructor(address[] memory owners, uint256 threshold) {
         if (threshold == 0) {
             revert ThresholdIsZero();
@@ -175,10 +176,12 @@ contract ProxyAdminMultiSig is IErrors {
         owners = _getOwners();
     }
 
+    /// @dev get proposal count
     function getProposalCount() external view returns (uint256) {
         return _proposalCount;
     }
 
+    /// @dev check if an address is an owner
     function isOwner(address owner) external view returns (bool) {
         return owner != Const.SENTINEL_OWNER && _owners[owner] != address(0);
     }
