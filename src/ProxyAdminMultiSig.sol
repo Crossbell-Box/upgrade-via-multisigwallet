@@ -188,6 +188,7 @@ contract ProxyAdminMultiSig is IErrors {
         return owner != Const.SENTINEL_OWNER && _owners[owner] != address(0);
     }
 
+    /// @dev delete a pending proposal by proposalId
     function _deletePendingProposalId(uint256 proposalId) internal {
         // find index to be deleted
         uint256 index = _getPendingProposalIndex(proposalId);
@@ -204,6 +205,7 @@ contract ProxyAdminMultiSig is IErrors {
         }
     }
 
+    /// @dev get all owners
     function _getOwners() internal view returns (address[] memory) {
         address[] memory array = new address[](_ownersCount);
 
@@ -217,6 +219,7 @@ contract ProxyAdminMultiSig is IErrors {
         return array;
     }
 
+    /// @dev check if an owner has approved a proposal
     function _hasApproved(address owner, uint256 proposalId) internal view returns (bool) {
         uint256 index = MAX_UINT256;
         address[] memory approvals = _proposals[proposalId].approvals;
@@ -230,6 +233,7 @@ contract ProxyAdminMultiSig is IErrors {
         return index != MAX_UINT256;
     }
 
+    /// @dev check if a proposal is pending
     function _isPendingProposal(uint256 proposalId) internal view returns (bool) {
         uint256 index = _getPendingProposalIndex(proposalId);
         return index != MAX_UINT256;
@@ -246,16 +250,12 @@ contract ProxyAdminMultiSig is IErrors {
         }
     }
 
-    /**
-     * @dev Returns the smallest of two numbers.
-     */
+    /// @dev Returns the smallest of two numbers.
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a < b ? a : b;
     }
 
-    /**
-     * @dev Returns true if the two strings are equal.
-     */
+    /// @devReturns true if the two strings are equal.
     function _equal(string memory a, string memory b) internal pure returns (bool) {
         return bytes(a).length == bytes(b).length && keccak256(bytes(a)) == keccak256(bytes(b));
     }
