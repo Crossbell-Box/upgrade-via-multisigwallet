@@ -47,6 +47,17 @@ contract MultiSigTest is IErrors, Test, Utils {
         proxy = address(transparentProxy);
     }
 
+    function testSetupStatus() public view {
+        assertEq(_getImplementation(proxy), address(implementationV1));
+        assertEq(_getAdmin(proxy), address(multiSig));
+
+        _checkWalletDetail(2, 3, ownersArr3);
+
+        for (uint256 i = 0; i < ownersArr3.length; i++) {
+            assertEq(multiSig.isOwner(ownersArr3[i]), true);
+        }
+    }
+
     function testConstruct() public {
         multiSig = new ProxyAdminMultiSig(ownersArr3, 2);
         _checkWalletDetail(2, 3, ownersArr3);

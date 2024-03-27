@@ -19,7 +19,7 @@ contract ProxyAdminMultiSig is IErrors {
         string status;
     }
 
-    uint256 internal constant MAX_UINT256 = type(uint256).max;
+    uint256 public constant MAX_UINT256 = type(uint256).max;
 
     // multi-sig wallet
     mapping(address => address) internal _owners;
@@ -190,13 +190,7 @@ contract ProxyAdminMultiSig is IErrors {
 
     function _deletePendingProposalId(uint256 proposalId) internal {
         // find index to be deleted
-        uint256 index = MAX_UINT256;
-        for (uint256 i = 0; i < _pendingProposalIds.length; i++) {
-            if (proposalId == _pendingProposalIds[i]) {
-                index = i;
-                break;
-            }
-        }
+        uint256 index = _getPendingProposalIndex(proposalId);
 
         // if index not equal to MAX_UINT256, it means the proposalId is found
         if (index != MAX_UINT256) {
@@ -225,9 +219,9 @@ contract ProxyAdminMultiSig is IErrors {
 
     function _hasApproved(address owner, uint256 proposalId) internal view returns (bool) {
         uint256 index = MAX_UINT256;
-        Proposal memory proposal = _proposals[proposalId];
-        for (uint256 i = 0; i < proposal.approvals.length; i++) {
-            if (owner == proposal.approvals[i]) {
+        address[] memory approvals = _proposals[proposalId].approvals;
+        for (uint256 i = 0; i < approvals.length; i++) {
+            if (owner == approvals[i]) {
                 index = i;
                 break;
             }
@@ -237,17 +231,19 @@ contract ProxyAdminMultiSig is IErrors {
     }
 
     function _isPendingProposal(uint256 proposalId) internal view returns (bool) {
-        uint256 index = MAX_UINT256;
+        uint256 index = _getPendingProposalIndex(proposalId);
+        return index != MAX_UINT256;
+    }
+
+    /// @dev get the index of a pending proposal, return MAX_UINT256 if not found,
+    function _getPendingProposalIndex(uint256 proposalId) internal view returns (uint256 index) {
+        index = MAX_UINT256;
         for (uint256 i = 0; i < _pendingProposalIds.length; i++) {
             if (proposalId == _pendingProposalIds[i]) {
-                // plus 1 because index 0
-                // means a value is not in the array.
-                index = i + 1;
+                index = i;
                 break;
             }
         }
-
-        return index != MAX_UINT256;
     }
 
     /**
