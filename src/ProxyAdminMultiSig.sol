@@ -25,7 +25,6 @@ contract ProxyAdminMultiSig is IErrors {
 
     // multi-sig wallet
     EnumerableSet.AddressSet internal _owners;
-    uint256 internal _ownersCount;
     uint256 internal _threshold;
 
     // proposals
@@ -56,13 +55,13 @@ contract ProxyAdminMultiSig is IErrors {
                 revert DuplicatedOwner(owner);
             }
         }
-        _ownersCount = _owners.length();
+       uint256 ownersCount = _owners.length();
         _threshold = threshold;
-        if (threshold > _ownersCount) {
-            revert ThresholdExceedsOwnersCount(threshold, _ownersCount);
+        if (threshold > ownersCount) {
+            revert ThresholdExceedsOwnersCount(threshold, ownersCount);
         }
 
-        emit Events.Setup(msg.sender, owners, _ownersCount, threshold);
+        emit Events.Setup(msg.sender, owners, ownersCount, threshold);
     }
 
     /// @dev proposes a new admin or implementation for a proxy
