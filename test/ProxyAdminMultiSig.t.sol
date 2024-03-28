@@ -302,7 +302,7 @@ contract MultiSigTest is IErrors, Test, Utils {
         assertEq(multiSig.getProposalCount(), 1);
 
         // check proposal status
-        _checkAllProposal(proposalId, proxy, Const.CHANGE_ADMIN, dan, "", 0, new address[](0), Const.STATUS_DELETED);
+        _checkProposal(proposalId, proxy, Const.CHANGE_ADMIN, dan, "", 0, new address[](0), Const.STATUS_DELETED);
     }
 
     function testDeleteProposalFail() public {
@@ -369,7 +369,7 @@ contract MultiSigTest is IErrors, Test, Utils {
         multiSig.executeProposal(proposalId);
 
         assertEq(_getImplementation(proxy), implementationV2);
-        _checkAllProposal(
+        _checkProposal(
             proposalId,
             proxy,
             Const.TYPE_UPGRADE,
@@ -418,7 +418,7 @@ contract MultiSigTest is IErrors, Test, Utils {
         multiSig.executeProposal(proposalId);
 
         assertEq(_getImplementation(proxy), implementationV2);
-        _checkAllProposal(
+        _checkProposal(
             proposalId,
             proxy,
             Const.TYPE_UPGRADE_AND_CALL,
@@ -453,7 +453,7 @@ contract MultiSigTest is IErrors, Test, Utils {
         // check the admin has changed
         assertEq(_getAdmin(proxy), dan);
         assertEq(_getImplementation(proxy), implementationV1);
-        _checkAllProposal(proposalId, proxy, Const.CHANGE_ADMIN, dan, "", 2, array(alice, bob), Const.STATUS_EXECUTED);
+        _checkProposal(proposalId, proxy, Const.CHANGE_ADMIN, dan, "", 2, array(alice, bob), Const.STATUS_EXECUTED);
     }
 
     function testExecuteMultipleProposals() public {
@@ -486,7 +486,7 @@ contract MultiSigTest is IErrors, Test, Utils {
         // check executed status
         assertEq(_getImplementation(proxy), implementationV2);
         assertEq(_getAdmin(proxy), dan);
-        _checkAllProposal(
+        _checkProposal(
             1,
             proxy,
             Const.TYPE_UPGRADE,
@@ -496,7 +496,7 @@ contract MultiSigTest is IErrors, Test, Utils {
             array(alice, charlie),
             Const.STATUS_EXECUTED
         );
-        _checkAllProposal(2, proxy, Const.CHANGE_ADMIN, dan, "", 2, array(alice, charlie), Const.STATUS_EXECUTED);
+        _checkProposal(2, proxy, Const.CHANGE_ADMIN, dan, "", 2, array(alice, charlie), Const.STATUS_EXECUTED);
     }
 
     function testExecuteProposalFail() public {
@@ -526,45 +526,6 @@ contract MultiSigTest is IErrors, Test, Utils {
         vm.expectRevert(NotPendingProposal.selector);
         vm.prank(charlie);
         multiSig.executeProposal(proposalId);
-    }
-
-    function testGetAllProposals() public {
-        vm.prank(alice);
-        multiSig.propose(proxy, Const.TYPE_UPGRADE, implementationV2, "");
-        vm.prank(bob);
-        multiSig.propose(proxy, Const.CHANGE_ADMIN, dan, "");
-        vm.prank(charlie);
-        multiSig.propose(
-            proxy,
-            Const.TYPE_UPGRADE_AND_CALL,
-            implementationV2,
-            abi.encodeWithSelector(UpgradeV2.increment.selector)
-        );
-
-        ProxyAdminMultiSig.Proposal[] memory proposals = multiSig.getAllProposals(0, 100);
-        assertEq(proposals.length, 3);
-        assertEq(multiSig.getAllProposals(0, 3).length, 3);
-        assertEq(multiSig.getAllProposals(1, 1).length, 1);
-        assertEq(multiSig.getAllProposals(1, 100).length, 2);
-
-        vm.prank(alice);
-        multiSig.approveProposal(1);
-        vm.prank(bob);
-        multiSig.approveProposal(1);
-        assertEq(multiSig.getAllProposals(0, 100).length, 3);
-
-        vm.prank(alice);
-        multiSig.deleteProposal(3);
-
-        vm.prank(alice);
-        multiSig.deleteProposal(2);
-        assertEq(multiSig.getAllProposals(0, 100).length, 3);
-    }
-
-    function testGetAllProposalsFail() public view {
-        // offset >= proposalCount returns nothing
-        ProxyAdminMultiSig.Proposal[] memory proposals = multiSig.getAllProposals(2, 2);
-        assertEq(proposals.length, 0);
     }
 
     function testGetPendingProposals() public {
@@ -602,9 +563,8 @@ contract MultiSigTest is IErrors, Test, Utils {
     ) internal view {
         // get pending proposals and all proposals
         ProxyAdminMultiSig.Proposal[] memory pendingProposals = multiSig.getPendingProposals();
-        ProxyAdminMultiSig.Proposal[] memory allProposals = multiSig.getAllProposals(proposalId - 1, 1);
         // get proposal by _proposalId
-        ProxyAdminMultiSig.Proposal memory proposal = allProposals[proposalId - 1];
+        ProxyAdminMultiSig.Proposal memory proposal = multiSig.getProposal(proposalId);
         // check if this id is in pending list
         bool exist = false;
         for (uint256 i = 0; i < pendingProposals.length; i++) {
@@ -623,7 +583,7 @@ contract MultiSigTest is IErrors, Test, Utils {
         assertEq(proposal.status, status);
     }
 
-    function _checkAllProposal(
+    function _checkProposal(
         uint256 proposalId,
         address proxy_,
         string memory proposalType,
@@ -633,8 +593,7 @@ contract MultiSigTest is IErrors, Test, Utils {
         address[] memory approvals,
         string memory status
     ) internal view {
-        ProxyAdminMultiSig.Proposal[] memory proposals = multiSig.getAllProposals(proposalId - 1, 1);
-        ProxyAdminMultiSig.Proposal memory p = proposals[0];
+        ProxyAdminMultiSig.Proposal memory p = multiSig.getProposal(proposalId);
         assertEq(p.proxy, proxy_);
         assertEq(p.proposalType, proposalType);
         assertEq(p.newAdminOrImplementation, adminOrImplementation);
@@ -645,9 +604,10 @@ contract MultiSigTest is IErrors, Test, Utils {
     }
 
     function _checkWalletDetail(uint256 threshold_, uint256 ownersCount_, address[] memory owners_) internal view {
-        (uint256 threshold, uint256 ownersCount, address[] memory owners) = multiSig.getWalletDetail();
-        assertEq(threshold, threshold_);
-        assertEq(ownersCount, ownersCount_);
+        assertEq(multiSig.getThreshold(), threshold_);
+
+        address[] memory owners = multiSig.getOwners();
+        assertEq(owners.length, ownersCount_);
         assertEq(owners, owners_);
     }
 

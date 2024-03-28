@@ -42,9 +42,8 @@ contract Deploy is Deployer {
         ProxyAdminMultiSig multiSig = new ProxyAdminMultiSig(cfg.getOwners(), cfg.getThreshold());
 
         // check states
-        (uint256 threshold, uint256 ownersCount, address[] memory owners) = multiSig.getWalletDetail();
-        require(threshold == cfg.getThreshold(), "Threshold mismatch");
-        require(ownersCount == owners.length, "Owners count mismatch");
+        require(multiSig.getThreshold() == cfg.getThreshold(), "Threshold mismatch");
+        address[] memory owners = multiSig.getOwners();
         for (uint256 i = 0; i < owners.length; i++) {
             require(multiSig.isOwner(owners[i]), "Owners mismatch");
         }

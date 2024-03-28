@@ -7,7 +7,6 @@ import {Const} from "./libraries/Const.sol";
 import {Events} from "./libraries/Events.sol";
 import {IProxy} from "./interfaces/IProxy.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract ProxyAdminMultiSig is IErrors {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -163,24 +162,19 @@ contract ProxyAdminMultiSig is IErrors {
         }
     }
 
-    /// @dev returns all proposals
-    function getAllProposals(uint256 offset, uint256 limit) external view returns (Proposal[] memory results) {
-        if (offset >= _proposalCount) return results;
-
-        uint256 len = Math.min(limit, _proposalCount - offset);
-
-        results = new Proposal[](len);
-        for (uint256 i = offset; i < offset + len; i++) {
-            // plus 1 because proposalId starts from 1
-            results[i - offset] = _proposals[i + 1];
-        }
+    /// @dev returns a proposal
+    function getProposal(uint256 proposalId) external view returns (Proposal memory) {
+        return _proposals[proposalId];
     }
 
-    /// @dev returns wallet detail
-    function getWalletDetail() external view returns (uint256 threshold, uint256 ownersCount, address[] memory owners) {
-        threshold = _threshold;
-        ownersCount = _ownersCount;
-        owners = _owners.values();
+    /// @dev returns the threshold of multi-sig wallet
+    function getThreshold() external view returns (uint256) {
+        return _threshold;
+    }
+
+    /// @dev returns the owners of multi-sig wallet
+    function getOwners() external view returns (address[] memory) {
+        return _owners.values();
     }
 
     /// @dev get proposal count
