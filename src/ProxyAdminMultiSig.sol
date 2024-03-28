@@ -23,8 +23,6 @@ contract ProxyAdminMultiSig is IErrors {
         string status;
     }
 
-    uint256 public constant MAX_UINT256 = type(uint256).max;
-
     // multi-sig wallet
     EnumerableSet.AddressSet internal _owners;
     uint256 internal _ownersCount;
@@ -189,7 +187,8 @@ contract ProxyAdminMultiSig is IErrors {
 
     /// @dev checks if an owner has approved a proposal
     function _hasApproved(address owner, uint256 proposalId) internal view returns (bool) {
-        uint256 index = MAX_UINT256;
+        // find the index of the owner in the approvals array, here we use MAX_UINT256 as a sentinel value
+        uint256 index = type(uint256).max;
         address[] memory approvals = _proposals[proposalId].approvals;
         for (uint256 i = 0; i < approvals.length; i++) {
             if (owner == approvals[i]) {
@@ -198,7 +197,7 @@ contract ProxyAdminMultiSig is IErrors {
             }
         }
         // if index not equal to MAX_UINT256, it means the owner has approved the proposal
-        return index != MAX_UINT256;
+        return index != type(uint256).max;
     }
 
     /// @dev checks if a proposal is pending
